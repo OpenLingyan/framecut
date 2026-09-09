@@ -1,5 +1,7 @@
 # 贡献指南
 
+> **Repository language policy:** Write all new branch names, commit messages, pull request metadata, reviews, issue and discussion content, release notes, and changelog entries in English. The CI metadata check requires plain ASCII text for branch names, commit messages, pull request titles, and pull request descriptions. Localized product strings and explicitly localized documentation, such as `docs/README-zh.md`, are exempt.
+
 感谢你愿意改进 FrameCut。项目欢迎缺陷修复、兼容性改进、测试、文档和经过讨论的新功能。
 
 ## 提交问题前
