@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: macOS 14 / Swift
+    runs-on: macos-14
+    timeout-minutes: 30
+    env:
+      FRAMECUT_QA_VIDEO: ${{ runner.temp }}/framecut-qa/qa-sample.mp4
+      FRAMECUT_CONTENT_QA_VIDEO: ${{ runner.temp }}/framecut-qa/qa-sample.mp4
+      FRAMECUT_COMPATIBILITY_QA_VIDEO: ${{ runner.temp }}/framecut-qa/qa-sample.mp4
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Show toolchain versions
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Install FFmpeg runtime
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          if ! brew list --versions ffmpeg >/dev/null 2>&1; then
+            brew install ffmpeg
+          fi
+          ffmpeg -hide_banner -version
+          ffprobe -hide_banner -version
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'libx264|h264_videotoolbox'
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep 'libx265'
+
+      - name: Check shell scripts
+        run: |
+          for shell_script in scripts/*.sh; do
+            zsh -n "$shell_script"
+          done
+
+      - name: Generate synthetic QA video
+        run: ./scripts/generate-qa-video.sh "$FRAMECUT_QA_VIDEO"
+
+      - name: Build release executable
+        run: swift build -c release
+
+      - name: Run complete test suite
+        run: swift test
+
+      - name: Package and verify app bundle
+        run: |
+          ./scripts/build-app.sh
+          plutil -lint dist/FrameCut.app/Contents/Info.plist
+          codesign --verify --deep --strict --verbose=2 dist/FrameCut.app
