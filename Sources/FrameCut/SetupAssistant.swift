@@ -287,7 +287,7 @@ final class SetupAssistantModel: ObservableObject {
               let homebrewURL = report.homebrewURL else { return }
         phase = .installing
         errorMessage = nil
-        installationLog = "正在通过 Homebrew 安装所需组件…\n首次安装可能需要几分钟，请保持网络连接。"
+        installationLog = L10n.text("setup.installation_initial_log")
 
         installationTask?.cancel()
         installationTask = Task { [weak self] in
@@ -299,19 +299,19 @@ final class SetupAssistantModel: ObservableObject {
                 )
                 guard result.terminationStatus == 0 else {
                     self.clearSelfCheckCompletion()
-                    self.errorMessage = "Homebrew 安装未完成，请查看安装日志后重试。"
+                    self.errorMessage = L10n.text("setup.homebrew_failed")
                     self.phase = .failed
                     return
                 }
 
                 _ = await self.checkDependencies()
                 if self.report?.isReady != true {
-                    self.errorMessage = "安装已结束，但仍有组件未通过检测。"
+                    self.errorMessage = L10n.text("setup.verification_failed")
                     self.phase = .failed
                 }
             } catch {
                 self.clearSelfCheckCompletion()
-                self.errorMessage = "无法启动安装：\(error.localizedDescription)"
+                self.errorMessage = L10n.format("setup.launch_failed", "\(error.localizedDescription)")
                 self.phase = .failed
             }
         }
@@ -337,7 +337,8 @@ final class SetupAssistantModel: ObservableObject {
     }
 
     func openHomebrewWebsite() {
-        guard let url = URL(string: "https://brew.sh/zh-cn/") else { return }
+        let website = L10n.language == .simplifiedChinese ? "https://brew.sh/zh-cn/" : "https://brew.sh/"
+        guard let url = URL(string: website) else { return }
         NSWorkspace.shared.open(url)
     }
 
@@ -437,10 +438,10 @@ struct SetupAssistantView: View {
             .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("FrameCut 运行环境向导")
+                Text(L10n.text("setup.title"))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(FrameCutColors.primaryText)
-                Text("检查完整媒体兼容功能所需的本地组件")
+                Text(L10n.text("setup.subtitle"))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(FrameCutColors.secondaryText)
             }
@@ -465,10 +466,10 @@ struct SetupAssistantView: View {
             ProgressView()
                 .controlSize(.large)
                 .tint(FrameCutColors.accentBright)
-            Text("正在检测运行环境…")
+            Text(L10n.text("setup.checking"))
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(FrameCutColors.primaryText)
-            Text("正在检查 FFmpeg、媒体探测器和压缩编码能力")
+            Text(L10n.text("setup.checking_detail"))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(FrameCutColors.secondaryText)
         }
@@ -478,7 +479,7 @@ struct SetupAssistantView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("需要补充运行组件")
+                    Text(L10n.text("setup.components_needed"))
                         .font(.system(size: 19, weight: .semibold))
                         .foregroundStyle(FrameCutColors.primaryText)
                     Text(requirementsSummary)
@@ -495,7 +496,7 @@ struct SetupAssistantView: View {
                     HStack(spacing: 9) {
                         Image(systemName: "shippingbox.fill")
                             .foregroundStyle(FrameCutColors.success)
-                        Text("已检测到 Homebrew，可由 FrameCut 自动完成安装。")
+                        Text(L10n.text("setup.homebrew_detected"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(FrameCutColors.secondaryText)
                     }
@@ -515,10 +516,10 @@ struct SetupAssistantView: View {
                     .controlSize(.regular)
                     .tint(FrameCutColors.accentBright)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("正在安装所需组件")
+                    Text(L10n.text("setup.installing"))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(FrameCutColors.primaryText)
-                    Text("请勿退出 FrameCut；安装完成后会自动重新检测。")
+                    Text(L10n.text("setup.installing_detail"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(FrameCutColors.secondaryText)
                 }
@@ -543,10 +544,10 @@ struct SetupAssistantView: View {
                     .font(.system(size: 34))
                     .foregroundStyle(FrameCutColors.success)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("运行环境检查通过")
+                    Text(L10n.text("setup.ready"))
                         .font(.system(size: 19, weight: .semibold))
                         .foregroundStyle(FrameCutColors.primaryText)
-                    Text("自检结果已保存；下次启动无需重复检测。")
+                    Text(L10n.text("setup.ready_detail"))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(FrameCutColors.secondaryText)
                 }
@@ -573,17 +574,17 @@ struct SetupAssistantView: View {
                     .font(.system(size: 25))
                     .foregroundStyle(FrameCutColors.danger)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("安装未完成")
+                    Text(L10n.text("setup.failed"))
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(FrameCutColors.primaryText)
-                    Text(model.errorMessage ?? "请检查网络连接后重试。")
+                    Text(model.errorMessage ?? L10n.text("setup.network_retry"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(FrameCutColors.secondaryText)
                 }
             }
 
             ScrollView {
-                Text(model.installationLog.isEmpty ? "暂无安装日志" : model.installationLog)
+                Text(model.installationLog.isEmpty ? L10n.text("setup.no_log") : model.installationLog)
                     .font(.system(size: 10, weight: .regular, design: .monospaced))
                     .foregroundStyle(FrameCutColors.secondaryText)
                     .textSelection(.enabled)
@@ -597,26 +598,26 @@ struct SetupAssistantView: View {
     private var dependencyList: some View {
         VStack(spacing: 0) {
             DependencyStatusRow(
-                title: "FFmpeg 媒体引擎",
-                detail: model.report?.ffmpegURL?.path ?? "负责常见格式解码与转换",
+                title: L10n.text("setup.ffmpeg_title"),
+                detail: model.report?.ffmpegURL?.path ?? L10n.text("setup.ffmpeg_detail"),
                 isInstalled: model.report?.hasUsableFFmpeg == true
             )
             Divider().overlay(FrameCutColors.border)
             DependencyStatusRow(
-                title: "ffprobe 媒体探测器",
-                detail: model.report?.ffprobeURL?.path ?? "负责读取原始编码与码率",
+                title: L10n.text("setup.ffprobe_title"),
+                detail: model.report?.ffprobeURL?.path ?? L10n.text("setup.ffprobe_detail"),
                 isInstalled: model.report?.hasUsableFFprobe == true
             )
             Divider().overlay(FrameCutColors.border)
             DependencyStatusRow(
-                title: "H.264 兼容预览",
-                detail: "用于系统无法直接读取的视频",
+                title: L10n.text("setup.h264_title"),
+                detail: L10n.text("setup.h264_detail"),
                 isInstalled: model.report?.hasH264PreviewEncoder == true
             )
             Divider().overlay(FrameCutColors.border)
             DependencyStatusRow(
-                title: "HEVC 智能压缩",
-                detail: "需要 libx265 编码器",
+                title: L10n.text("setup.hevc_title"),
+                detail: L10n.text("setup.hevc_detail"),
                 isInstalled: model.report?.hasHEVCSmartEncoder == true
             )
         }
@@ -625,10 +626,10 @@ struct SetupAssistantView: View {
 
     private var homebrewGuide: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("安装步骤")
+            Text(L10n.text("setup.install_steps"))
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(FrameCutColors.primaryText)
-            Text("1. 复制 Homebrew 官方安装命令并打开终端\n2. 在终端粘贴命令，按提示完成安装\n3. 返回此窗口并点击“重新检测”")
+            Text(L10n.text("setup.homebrew_instructions"))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(FrameCutColors.secondaryText)
                 .lineSpacing(5)
@@ -638,13 +639,13 @@ struct SetupAssistantView: View {
                     model.copyHomebrewCommandAndOpenTerminal()
                 } label: {
                     Label(
-                        model.didCopyHomebrewCommand ? "已复制，终端已打开" : "复制命令并打开终端",
+                        model.didCopyHomebrewCommand ? L10n.text("setup.command_copied") : L10n.text("setup.copy_command"),
                         systemImage: model.didCopyHomebrewCommand ? "checkmark" : "terminal"
                     )
                 }
                 .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
 
-                Button("查看 Homebrew 官网") {
+                Button(L10n.text("setup.homebrew_website")) {
                     model.openHomebrewWebsite()
                 }
                 .buttonStyle(ToolbarActionButtonStyle())
@@ -657,7 +658,7 @@ struct SetupAssistantView: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            Label("检测在本机完成；安装来自 Homebrew 官方源", systemImage: "lock.fill")
+            Label(L10n.text("setup.source_notice"), systemImage: "lock.fill")
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(FrameCutColors.tertiaryText)
 
@@ -667,22 +668,22 @@ struct SetupAssistantView: View {
             case .checking, .installing:
                 EmptyView()
             case .ready:
-                Button("开始使用") { model.finish() }
+                Button(L10n.text("setup.get_started")) { model.finish() }
                     .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
             case .requirements:
-                Button("稍后") { model.postpone() }
+                Button(L10n.text("common.later")) { model.postpone() }
                     .buttonStyle(ToolbarActionButtonStyle())
                 if model.report?.homebrewURL == nil {
-                    Button("重新检测") { model.recheck() }
+                    Button(L10n.text("setup.recheck")) { model.recheck() }
                         .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
                 } else {
-                    Button("安装所需组件") { model.installRequiredComponents() }
+                    Button(L10n.text("setup.install_components")) { model.installRequiredComponents() }
                         .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
                 }
             case .failed:
-                Button("稍后") { model.postpone() }
+                Button(L10n.text("common.later")) { model.postpone() }
                     .buttonStyle(ToolbarActionButtonStyle())
-                Button("重试") {
+                Button(L10n.text("common.retry")) {
                     if model.report?.homebrewURL == nil {
                         model.recheck()
                     } else {
@@ -698,19 +699,19 @@ struct SetupAssistantView: View {
     }
 
     private var requirementsSummary: String {
-        guard let report = model.report else { return "正在整理检测结果。" }
+        guard let report = model.report else { return L10n.text("setup.collecting_results") }
         if report.homebrewURL == nil {
-            return "检测到 \(report.missingComponentCount) 项缺失。需要先安装 Homebrew，再安装 FFmpeg；你仍可稍后使用系统原生 MP4/MOV 功能。"
+            return L10n.format("setup.missing_homebrew", "\(report.missingComponentCount)")
         }
-        return "检测到 \(report.missingComponentCount) 项缺失。点击下方按钮后，FrameCut 将通过 Homebrew 安装标准 FFmpeg 套件。"
+        return L10n.format("setup.missing_components", "\(report.missingComponentCount)")
     }
 
     private var stepText: String {
         switch model.phase {
-        case .checking: return "步骤 1 / 3 · 检测"
-        case .requirements, .failed: return "步骤 2 / 3 · 安装"
-        case .installing: return "步骤 2 / 3 · 安装中"
-        case .ready: return "步骤 3 / 3 · 完成"
+        case .checking: return L10n.text("setup.step_check")
+        case .requirements, .failed: return L10n.text("setup.step_install")
+        case .installing: return L10n.text("setup.step_installing")
+        case .ready: return L10n.text("setup.step_complete")
         }
     }
 }
@@ -740,7 +741,7 @@ private struct DependencyStatusRow: View {
 
             Spacer()
 
-            Text(isInstalled ? "已就绪" : "需要安装")
+            Text(isInstalled ? L10n.text("setup.component_ready") : L10n.text("setup.component_missing"))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(isInstalled ? FrameCutColors.success : FrameCutColors.warning)
         }

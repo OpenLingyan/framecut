@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mount and verify a release image without opening Finder or launching the app."""
+"""Mount and verify a release image without opening Finder or application windows."""
 
 import os
 from pathlib import Path
@@ -52,6 +52,15 @@ def verify(image, version, architecture):
             require(info["CFBundleIdentifier"] == "com.openlingyan.framecut", "Unexpected app identifier.")
             require(info["CFBundleShortVersionString"] == version, "The app and release versions differ.")
             require(info["LSMinimumSystemVersion"] == "14.0", "Unexpected minimum macOS version.")
+            require(set(info["CFBundleLocalizations"]) == {"en", "zh-Hans"}, "Missing app languages.")
+            for language in ("en", "zh-Hans"):
+                require(
+                    (app / f"Contents/Resources/{language}.lproj/InfoPlist.strings").is_file(),
+                    f"Missing native app localization: {language}",
+                )
+            subprocess.run(
+                [str(app / "Contents/MacOS/FrameCut"), "--verify-localizations"], check=True
+            )
             subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
             architectures = ["arm64", "x86_64"] if architecture == "universal2" else [architecture]
             require(all(value in {"arm64", "x86_64"} for value in architectures), "Unknown architecture.")

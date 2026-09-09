@@ -23,9 +23,9 @@ struct MediaMetadata: Equatable {
         height: Int,
         frameRate: Double,
         hasAudio: Bool,
-        containerFormat: String = "未知",
+        containerFormat: String = L10n.text("common.unknown"),
         fileSize: Int64 = 0,
-        videoCodec: String = "未知",
+        videoCodec: String = L10n.text("common.unknown"),
         videoBitRate: Double = 0,
         audioCodec: String? = nil,
         audioSampleRate: Double = 0,
@@ -48,27 +48,27 @@ struct MediaMetadata: Equatable {
     }
 
     var resolutionText: String {
-        guard width > 0, height > 0 else { return "未知分辨率" }
+        guard width > 0, height > 0 else { return L10n.text("media.unknown_resolution") }
         return "\(width) × \(height)"
     }
 
     var frameRateText: String {
         let rounded = frameRate.rounded()
         if abs(frameRate - rounded) < 0.01 {
-            return "\(Int(rounded)) fps"
+            return L10n.format("media.frame_rate_value", "\(Int(rounded))")
         }
-        return String(format: "%.2f fps", frameRate)
+        return L10n.format("media.frame_rate_value", String(format: "%.2f", locale: L10n.locale, frameRate))
     }
 
     var aspectRatioText: String {
-        guard width > 0, height > 0 else { return "未知" }
+        guard width > 0, height > 0 else { return L10n.text("common.unknown") }
         let divisor = greatestCommonDivisor(width, height)
         return "\(width / divisor):\(height / divisor)"
     }
 
     var fileSizeText: String {
-        guard fileSize > 0 else { return "未知" }
-        return ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
+        guard fileSize > 0 else { return L10n.text("common.unknown") }
+        return L10n.byteCount(fileSize)
     }
 
     var videoBitRateText: String {
@@ -76,23 +76,23 @@ struct MediaMetadata: Equatable {
     }
 
     var audioSampleRateText: String {
-        guard audioSampleRate > 0 else { return "未知" }
+        guard audioSampleRate > 0 else { return L10n.text("common.unknown") }
         if audioSampleRate >= 1_000 {
             let kilohertz = audioSampleRate / 1_000
             if abs(kilohertz - kilohertz.rounded()) < 0.01 {
-                return "\(Int(kilohertz.rounded())) kHz"
+                return L10n.format("media.sample_rate_khz", "\(Int(kilohertz.rounded()))")
             }
-            return String(format: "%.1f kHz", kilohertz)
+            return L10n.format("media.sample_rate_khz", String(format: "%.1f", locale: L10n.locale, kilohertz))
         }
-        return "\(Int(audioSampleRate.rounded())) Hz"
+        return L10n.format("media.sample_rate_hz", "\(Int(audioSampleRate.rounded()))")
     }
 
     var audioChannelText: String {
         switch audioChannelCount {
-        case 1: return "单声道"
-        case 2: return "立体声"
-        case let count where count > 0: return "\(count) 声道"
-        default: return "未知"
+        case 1: return L10n.text("media.mono")
+        case 2: return L10n.text("media.stereo")
+        case let count where count > 0: return L10n.format("media.channel_count", "\(count)")
+        default: return L10n.text("common.unknown")
         }
     }
 
@@ -121,26 +121,26 @@ enum SourceCompressionAssessment: Equatable {
 
     var title: String {
         switch self {
-        case .unknown: return "质量待估"
-        case .alreadyCompressed: return "已高度压缩"
-        case .efficient: return "码率合理"
-        case .highQuality: return "高质量源"
-        case .bitrateRich: return "码率富余"
+        case .unknown: return L10n.text("assessment.unknown")
+        case .alreadyCompressed: return L10n.text("assessment.already_compressed")
+        case .efficient: return L10n.text("assessment.efficient")
+        case .highQuality: return L10n.text("assessment.high_quality")
+        case .bitrateRich: return L10n.text("assessment.bitrate_rich")
         }
     }
 
     var detail: String {
         switch self {
         case .unknown:
-            return "未能读取完整码率，按分辨率和帧率给出保守建议"
+            return L10n.text("assessment.unknown_detail")
         case .alreadyCompressed:
-            return "源文件压缩程度较高，仅建议轻度缩小以避免明显损失"
+            return L10n.text("assessment.already_compressed_detail")
         case .efficient:
-            return "当前码率较合理，建议适度压缩并保留原始画面尺寸"
+            return L10n.text("assessment.efficient_detail")
         case .highQuality:
-            return "源画面质量较高，可在大致保持观感的同时降低码率"
+            return L10n.text("assessment.high_quality_detail")
         case .bitrateRich:
-            return "单位像素码率较充足，转为 HEVC 可明显减小体积"
+            return L10n.text("assessment.bitrate_rich_detail")
         }
     }
 }
@@ -317,11 +317,11 @@ enum SmartCompressionAdvisor {
 enum MediaFormatInfo {
     static func containerName(for url: URL) -> String {
         let fileExtension = url.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines)
-        return fileExtension.isEmpty ? "未知" : fileExtension.uppercased()
+        return fileExtension.isEmpty ? L10n.text("common.unknown") : fileExtension.uppercased()
     }
 
     static func codecName(from description: CMFormatDescription?) -> String {
-        guard let description else { return "未知" }
+        guard let description else { return L10n.text("common.unknown") }
         let code = fourCCString(CMFormatDescriptionGetMediaSubType(description))
         switch code.lowercased() {
         case "avc1", "avc3": return "H.264 / AVC"
@@ -345,7 +345,7 @@ enum MediaFormatInfo {
         case "opus": return "Opus"
         default:
             let cleaned = code.trimmingCharacters(in: .whitespacesAndNewlines)
-            return cleaned.isEmpty ? "未知" : cleaned.uppercased()
+            return cleaned.isEmpty ? L10n.text("common.unknown") : cleaned.uppercased()
         }
     }
 
@@ -364,11 +364,11 @@ enum MediaFormatInfo {
     }
 
     static func bitRateText(_ bitsPerSecond: Double) -> String {
-        guard bitsPerSecond.isFinite, bitsPerSecond > 0 else { return "未知" }
+        guard bitsPerSecond.isFinite, bitsPerSecond > 0 else { return L10n.text("common.unknown") }
         if bitsPerSecond >= 1_000_000 {
-            return String(format: "%.2f Mbps", bitsPerSecond / 1_000_000)
+            return L10n.format("media.bitrate_mbps", String(format: "%.2f", locale: L10n.locale, bitsPerSecond / 1_000_000))
         }
-        return "\(Int((bitsPerSecond / 1_000).rounded())) kbps"
+        return L10n.format("media.bitrate_kbps", "\(Int((bitsPerSecond / 1_000).rounded()))")
     }
 
     private static func fourCCString(_ value: FourCharCode) -> String {
@@ -410,17 +410,17 @@ enum MediaProcessingError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noVideoTrack:
-            return "这个文件中没有可读取的视频轨道。"
+            return L10n.text("error.no_video_track")
         case .cannotStartReader:
-            return "无法建立视频帧索引。"
+            return L10n.text("error.frame_index")
         case .cannotGenerateThumbnails:
-            return "无法生成时间轴缩略图。"
+            return L10n.text("error.thumbnails")
         case .cannotCreateExportSession:
-            return "无法为这个视频创建导出任务。"
+            return L10n.text("error.create_export")
         case .unsupportedExportFormat:
-            return "当前视频不支持所选导出格式。"
+            return L10n.text("error.export_format")
         case .invalidSelection:
-            return "入点和出点没有形成有效的视频区间。"
+            return L10n.text("error.invalid_range")
         }
     }
 }

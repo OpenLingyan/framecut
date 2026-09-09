@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "FrameCut",
-    defaultLocalization: "zh-Hans",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
@@ -14,7 +14,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "FrameCut",
-            path: "Sources/FrameCut"
+            path: "Sources/FrameCut",
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "FrameCutTests",

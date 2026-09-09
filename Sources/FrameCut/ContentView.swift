@@ -66,13 +66,20 @@ private struct TopBar: View {
     @ObservedObject var model: VideoEditorModel
 
     var body: some View {
+        GeometryReader { geometry in
+            toolbar(showMetadata: geometry.size.width >= 1_200)
+        }
+        .frame(height: 66)
+    }
+
+    private func toolbar(showMetadata: Bool) -> some View {
         HStack(spacing: 14) {
             FrameCutBrandIcon()
             .frame(width: 36, height: 36)
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("FrameCut")
+                Text(L10n.text("app.name"))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(FrameCutColors.primaryText)
                 Text(model.fileDisplayPath)
@@ -80,19 +87,19 @@ private struct TopBar: View {
                     .foregroundStyle(FrameCutColors.tertiaryText)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .help(model.mediaURL?.path ?? "打开一个本地视频")
+                    .help(model.mediaURL?.path ?? L10n.text("file.open_local_hint"))
             }
             .frame(minWidth: 260, maxWidth: 430, alignment: .leading)
             .layoutPriority(1)
 
             Spacer(minLength: 12)
 
-            if let metadata = model.metadata {
+            if showMetadata, let metadata = model.metadata {
                 MediaChip(icon: "rectangle.inset.filled", text: metadata.resolutionText)
                 MediaChip(icon: "film", text: metadata.frameRateText)
                 MediaChip(
                     icon: metadata.hasAudio ? "speaker.wave.2.fill" : "speaker.slash.fill",
-                    text: metadata.hasAudio ? "含音频" : "无音频"
+                    text: metadata.hasAudio ? L10n.text("media.has_audio") : L10n.text("media.no_audio")
                 )
             }
 
@@ -101,21 +108,28 @@ private struct TopBar: View {
             Button {
                 model.openVideoPanel()
             } label: {
-                Label("打开视频", systemImage: "folder")
+                Label(L10n.text("file.open_video"), systemImage: "folder")
             }
             .buttonStyle(ToolbarActionButtonStyle())
             .keyboardShortcut("o", modifiers: .command)
-            .help("打开视频（⌘O），也可以直接拖入窗口")
+            .help(L10n.text("file.open_video_hint"))
 
             Button {
                 model.requestExportReview()
             } label: {
-                Label("导出片段", systemImage: "square.and.arrow.up")
+                Label(L10n.text("export.clip"), systemImage: "square.and.arrow.up")
             }
             .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
             .keyboardShortcut("e", modifiers: .command)
             .disabled(!model.canExport)
             .help(exportHelp)
+
+            SettingsLink {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(ToolbarActionButtonStyle())
+            .help(L10n.text("settings.menu"))
+            .accessibilityLabel(L10n.text("settings.title"))
         }
         .padding(.leading, 82)
         .padding(.trailing, 18)
@@ -124,10 +138,10 @@ private struct TopBar: View {
     }
 
     private var exportHelp: String {
-        if model.isPreparingCompatibilityMedia { return "正在准备兼容预览" }
-        if model.isIndexingFrames { return "完成精确帧索引后即可导出" }
-        if !model.canEdit { return "请先打开一个视频" }
-        return "检查并导出所选片段（⌘E）"
+        if model.isPreparingCompatibilityMedia { return L10n.text("compatibility.preparing") }
+        if model.isIndexingFrames { return L10n.text("export.wait_for_index") }
+        if !model.canEdit { return L10n.text("file.open_first") }
+        return L10n.text("export.review_hint")
     }
 }
 
@@ -211,7 +225,7 @@ private struct PlayerStage: View {
 
             if model.canEdit {
                 VideoPlayerView(player: model.player)
-                    .accessibilityLabel("视频预览")
+                    .accessibilityLabel(L10n.text("player.preview"))
             } else if model.isLoading {
                 LoadingVideoState(model: model)
             } else {
@@ -221,7 +235,7 @@ private struct PlayerStage: View {
             if model.canEdit {
                 VStack {
                     HStack {
-                        Label("所选区间", systemImage: "selection.pin.in.out")
+                        Label(L10n.text("selection.range"), systemImage: "selection.pin.in.out")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(FrameCutColors.primaryText)
                             .padding(.horizontal, 8)
@@ -235,7 +249,7 @@ private struct PlayerStage: View {
 
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("当前帧")
+                            Text(L10n.text("player.current_frame"))
                                 .font(.system(size: 9, weight: .semibold))
                                 .tracking(0.6)
                                 .foregroundStyle(Color.white.opacity(0.52))
@@ -251,7 +265,7 @@ private struct PlayerStage: View {
 
                         Spacer()
 
-                        Text("帧 \(model.currentFrameNumber.formatted()) / \(model.totalFrameCount.formatted())")
+                        Text(L10n.format("player.frame_position", "\(L10n.number(model.currentFrameNumber))", "\(L10n.number(model.totalFrameCount))"))
                             .font(.system(size: 11, weight: .semibold, design: .monospaced))
                             .monospacedDigit()
                             .foregroundStyle(Color.white.opacity(0.76))
@@ -296,10 +310,10 @@ private struct EmptyVideoState: View {
             .frame(width: 62, height: 62)
 
             VStack(spacing: 5) {
-                Text(isDropTargeted ? "松开即可打开视频" : "打开一个视频开始精确切割")
+                Text(isDropTargeted ? L10n.text("file.drop_to_open") : L10n.text("file.empty_title"))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(FrameCutColors.primaryText)
-                Text("拖入 MP4、MOV、AVI、MKV、WebM 等常见视频")
+                Text(L10n.text("file.supported_hint"))
                     .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(FrameCutColors.secondaryText)
             }
@@ -307,7 +321,7 @@ private struct EmptyVideoState: View {
             Button {
                 model.openVideoPanel()
             } label: {
-                Label("选择本地视频", systemImage: "folder")
+                Label(L10n.text("file.choose_video"), systemImage: "folder")
             }
             .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
         }
@@ -322,7 +336,7 @@ private struct LoadingVideoState: View {
             ProgressView()
                 .controlSize(.large)
                 .tint(FrameCutColors.accentBright)
-            Text(model.compatibilityPreparationStatus ?? "正在读取视频")
+            Text(model.compatibilityPreparationStatus ?? L10n.text("file.loading_video"))
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(FrameCutColors.primaryText)
             if let progress = model.compatibilityPreparationProgress {
@@ -330,7 +344,7 @@ private struct LoadingVideoState: View {
                     .progressViewStyle(.linear)
                     .tint(FrameCutColors.accentBright)
                     .frame(maxWidth: 280)
-                Text("\(Int((progress * 100).rounded()))%")
+                Text(L10n.format("common.percent", "\(Int((progress * 100).rounded()))"))
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(FrameCutColors.secondaryText)
             }
@@ -346,52 +360,64 @@ private struct TransportControls: View {
     @ObservedObject var model: VideoEditorModel
 
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            controls(showsLabels: true)
+            controls(showsLabels: false)
+        }
+        .disabled(!model.canEdit)
+    }
+
+    private func controls(showsLabels: Bool) -> some View {
         HStack(spacing: 8) {
             Spacer()
 
             TransportButton(
                 icon: "backward.end.fill",
-                label: "上一关键帧",
+                label: L10n.text("transport.previous_keyframe"),
                 shortcut: "⇧←",
                 isPrimary: false,
-                action: { model.jumpToKeyframe(-1) }
+                action: { model.jumpToKeyframe(-1) },
+                showsLabel: showsLabels
             )
 
             TransportButton(
                 icon: "backward.fill",
-                label: "上一帧",
+                label: L10n.text("transport.previous_frame"),
                 shortcut: "←",
                 isPrimary: false,
-                action: { model.stepFrame(-1) }
+                action: { model.stepFrame(-1) },
+                showsLabel: showsLabels
             )
 
             TransportButton(
                 icon: model.isPlaying ? "pause.fill" : "play.fill",
-                label: model.isPlaying ? "暂停" : "播放选区",
-                shortcut: "Space",
+                label: model.isPlaying ? L10n.text("transport.pause") : L10n.text("transport.play_selection"),
+                shortcut: L10n.text("shortcut.space"),
                 isPrimary: true,
-                action: { model.togglePlayback() }
+                action: { model.togglePlayback() },
+                showsLabel: showsLabels
             )
 
             TransportButton(
                 icon: "forward.fill",
-                label: "下一帧",
+                label: L10n.text("transport.next_frame"),
                 shortcut: "→",
                 isPrimary: false,
-                action: { model.stepFrame(1) }
+                action: { model.stepFrame(1) },
+                showsLabel: showsLabels
             )
 
             TransportButton(
                 icon: "forward.end.fill",
-                label: "下一关键帧",
+                label: L10n.text("transport.next_keyframe"),
                 shortcut: "⇧→",
                 isPrimary: false,
-                action: { model.jumpToKeyframe(1) }
+                action: { model.jumpToKeyframe(1) },
+                showsLabel: showsLabels
             )
 
             Spacer()
         }
-        .disabled(!model.canEdit)
     }
 }
 
@@ -401,21 +427,26 @@ private struct TransportButton: View {
     let shortcut: String
     let isPrimary: Bool
     let action: () -> Void
+    var showsLabel = true
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 7) {
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: .bold))
-                Text(label)
-                    .font(.system(size: 11, weight: .semibold))
+                if showsLabel {
+                    Text(label)
+                        .font(.system(size: 11, weight: .semibold))
+                        .fixedSize()
+                }
                 if !isPrimary {
                     ShortcutBadge(text: shortcut)
                 }
             }
         }
         .buttonStyle(TransportButtonStyle(isPrimary: isPrimary))
-        .help("\(label)（\(shortcut)）")
+        .accessibilityLabel(label)
+        .help(L10n.format("common.shortcut_hint", label, shortcut))
     }
 }
 
@@ -432,7 +463,7 @@ private struct TimelinePanel: View {
                         .font(.system(size: 13, weight: .semibold, design: .monospaced))
                         .monospacedDigit()
                         .foregroundStyle(FrameCutColors.primaryText)
-                    Text("/ \(model.durationClock)")
+                    Text(L10n.format("player.total_duration", model.durationClock))
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
                         .foregroundStyle(FrameCutColors.tertiaryText)
                 }
@@ -444,13 +475,13 @@ private struct TimelinePanel: View {
                         ProgressView()
                             .controlSize(.mini)
                             .tint(FrameCutColors.accentBright)
-                        Text("正在建立精确帧索引")
+                        Text(L10n.text("timeline.indexing"))
                     }
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(FrameCutColors.secondaryText)
                 } else if model.canEdit {
                     HStack(spacing: 8) {
-                        Text("\(model.frameTimes.count.formatted()) 帧 · \(model.keyframeTimes.count.formatted()) 关键帧")
+                        Text(L10n.format("timeline.frame_counts", "\(L10n.number(model.frameTimes.count))", "\(L10n.number(model.keyframeTimes.count))"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(FrameCutColors.tertiaryText)
 
@@ -471,10 +502,10 @@ private struct TimelinePanel: View {
                 .disabled(!model.canEdit)
 
             HStack {
-                Label("精细轨道定位与 I/O；下方总览平移", systemImage: "cursorarrow.motionlines")
+                Label(L10n.text("timeline.navigation_hint"), systemImage: "cursorarrow.motionlines")
                 Spacer()
                 if model.isGeneratingThumbnails || model.isGeneratingDetailThumbnails {
-                    Text("正在更新缩略图…")
+                    Text(L10n.text("timeline.updating_thumbnails"))
                 } else if timelineZoom > 1.001 {
                     Text(visibleRangeText)
                         .monospacedDigit()
@@ -494,7 +525,7 @@ private struct TimelinePanel: View {
             zoom: timelineZoom,
             center: timelineCenter
         )
-        return "\(FrameMath.clock(seconds: viewport.start)) – \(FrameMath.clock(seconds: viewport.end))"
+        return L10n.format("timeline.time_range", FrameMath.clock(seconds: viewport.start), FrameMath.clock(seconds: viewport.end))
     }
 }
 
@@ -505,50 +536,50 @@ private struct SelectionInspector: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("剪辑区间")
+                    Text(L10n.text("selection.title"))
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(FrameCutColors.primaryText)
-                    Text("出点包含当前帧")
+                    Text(L10n.text("selection.inclusive_out"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(FrameCutColors.tertiaryText)
                 }
 
                 MarkerCard(
                     marker: "I",
-                    title: "入点",
+                    title: L10n.text("selection.in"),
                     timecode: model.canEdit ? model.selectionStartTimecode : "--:--:--:--",
-                    frameText: model.canEdit ? "第 \(model.selectionStartFrameNumber.formatted()) 帧" : "尚未设置",
+                    frameText: model.canEdit ? L10n.format("selection.frame_number", "\(L10n.number(model.selectionStartFrameNumber))") : L10n.text("selection.not_set"),
                     shortcut: "I",
-                    actionTitle: "设为当前帧",
+                    actionTitle: L10n.text("selection.set_current"),
                     jumpAction: model.jumpToInPoint,
                     setAction: model.setInPointAtCurrentFrame
                 )
 
                 MarkerCard(
                     marker: "O",
-                    title: "出点",
+                    title: L10n.text("selection.out"),
                     timecode: model.canEdit ? model.selectionEndTimecode : "--:--:--:--",
-                    frameText: model.canEdit ? "第 \(model.selectionEndFrameNumber.formatted()) 帧" : "尚未设置",
+                    frameText: model.canEdit ? L10n.format("selection.frame_number", "\(L10n.number(model.selectionEndFrameNumber))") : L10n.text("selection.not_set"),
                     shortcut: "O",
-                    actionTitle: "设为当前帧",
+                    actionTitle: L10n.text("selection.set_current"),
                     jumpAction: model.jumpToOutPoint,
                     setAction: model.setOutPointAtCurrentFrame
                 )
 
                 VStack(alignment: .leading, spacing: 12) {
-                    SectionLabel(title: "所选片段")
+                    SectionLabel(title: L10n.text("selection.clip"))
 
                     HStack(spacing: 0) {
                         SelectionMetric(
-                            title: "时长",
+                            title: L10n.text("media.duration"),
                             value: model.canEdit ? model.selectionDurationClock : "--:--.---"
                         )
                         Divider()
                             .overlay(FrameCutColors.border)
                             .padding(.vertical, 2)
                         SelectionMetric(
-                            title: "帧数",
-                            value: model.canEdit ? model.selectionFrameCount.formatted() : "—"
+                            title: L10n.text("media.frame_count"),
+                            value: model.canEdit ? L10n.number(model.selectionFrameCount) : "—"
                         )
                     }
                     .frame(height: 48)
@@ -556,7 +587,7 @@ private struct SelectionInspector: View {
                     Button {
                         model.togglePlayback()
                     } label: {
-                        Label(model.isPlaying ? "暂停预览" : "播放所选片段", systemImage: model.isPlaying ? "pause.fill" : "play.fill")
+                        Label(model.isPlaying ? L10n.text("transport.pause_preview") : L10n.text("transport.play_clip"), systemImage: model.isPlaying ? "pause.fill" : "play.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(ToolbarActionButtonStyle())
@@ -565,50 +596,50 @@ private struct SelectionInspector: View {
                     Button {
                         model.requestExportReview()
                     } label: {
-                        Label("检查并导出", systemImage: "square.and.arrow.up")
+                        Label(L10n.text("export.review"), systemImage: "square.and.arrow.up")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
                     .disabled(!model.canExport)
-                    .help(model.isIndexingFrames ? "正在建立精确帧索引" : "导出所选片段")
+                    .help(model.isIndexingFrames ? L10n.text("timeline.indexing") : L10n.text("export.selected_clip"))
                 }
                 .padding(14)
                 .panelSurface(radius: 9, color: FrameCutColors.elevated)
 
                 if let metadata = model.metadata {
                     VStack(alignment: .leading, spacing: 12) {
-                        SectionLabel(title: "媒体信息")
+                        SectionLabel(title: L10n.text("media.info"))
 
                         MediaInfoGroup(
-                            title: "文件",
+                            title: L10n.text("media.file"),
                             items: [
-                                MediaInfoItem(label: "容器", value: metadata.containerFormat),
-                                MediaInfoItem(label: "文件大小", value: metadata.fileSizeText)
+                                MediaInfoItem(label: L10n.text("media.container"), value: metadata.containerFormat),
+                                MediaInfoItem(label: L10n.text("media.file_size"), value: metadata.fileSizeText)
                             ]
                         )
 
                         MediaInfoGroup(
-                            title: "视频",
+                            title: L10n.text("media.video"),
                             items: [
-                                MediaInfoItem(label: "编码", value: metadata.videoCodec),
-                                MediaInfoItem(label: "分辨率", value: metadata.resolutionText),
-                                MediaInfoItem(label: "画面比例", value: metadata.aspectRatioText),
-                                MediaInfoItem(label: "帧率", value: metadata.frameRateText),
-                                MediaInfoItem(label: "视频码率", value: metadata.videoBitRateText)
+                                MediaInfoItem(label: L10n.text("media.codec"), value: metadata.videoCodec),
+                                MediaInfoItem(label: L10n.text("media.resolution"), value: metadata.resolutionText),
+                                MediaInfoItem(label: L10n.text("media.aspect_ratio"), value: metadata.aspectRatioText),
+                                MediaInfoItem(label: L10n.text("media.frame_rate"), value: metadata.frameRateText),
+                                MediaInfoItem(label: L10n.text("media.video_bitrate"), value: metadata.videoBitRateText)
                             ]
                         )
 
                         MediaInfoGroup(
-                            title: "音频",
+                            title: L10n.text("media.audio"),
                             items: audioItems(for: metadata)
                         )
 
                         MediaInfoGroup(
-                            title: "时间线",
+                            title: L10n.text("timeline.title"),
                             items: [
-                                MediaInfoItem(label: "总时长", value: model.durationClock),
-                                MediaInfoItem(label: "总帧数", value: frameCountText),
-                                MediaInfoItem(label: "关键帧", value: keyframeCountText)
+                                MediaInfoItem(label: L10n.text("media.total_duration"), value: model.durationClock),
+                                MediaInfoItem(label: L10n.text("media.total_frames"), value: frameCountText),
+                                MediaInfoItem(label: L10n.text("media.keyframes"), value: keyframeCountText)
                             ]
                         )
                     }
@@ -621,24 +652,24 @@ private struct SelectionInspector: View {
     }
 
     private var frameCountText: String {
-        if model.isIndexingFrames { return "建立中…" }
-        return model.frameTimes.isEmpty ? "不可用" : model.frameTimes.count.formatted()
+        if model.isIndexingFrames { return L10n.text("timeline.indexing_short") }
+        return model.frameTimes.isEmpty ? L10n.text("common.unavailable") : L10n.number(model.frameTimes.count)
     }
 
     private var keyframeCountText: String {
-        if model.isIndexingFrames { return "建立中…" }
-        return model.keyframeTimes.isEmpty ? "不可用" : model.keyframeTimes.count.formatted()
+        if model.isIndexingFrames { return L10n.text("timeline.indexing_short") }
+        return model.keyframeTimes.isEmpty ? L10n.text("common.unavailable") : L10n.number(model.keyframeTimes.count)
     }
 
     private func audioItems(for metadata: MediaMetadata) -> [MediaInfoItem] {
         guard metadata.hasAudio else {
-            return [MediaInfoItem(label: "音轨", value: "无")]
+            return [MediaInfoItem(label: L10n.text("media.audio_track"), value: L10n.text("common.none"))]
         }
         return [
-            MediaInfoItem(label: "编码", value: metadata.audioCodec ?? "未知"),
-            MediaInfoItem(label: "采样率", value: metadata.audioSampleRateText),
-            MediaInfoItem(label: "声道", value: metadata.audioChannelText),
-            MediaInfoItem(label: "音频码率", value: metadata.audioBitRateText)
+            MediaInfoItem(label: L10n.text("media.codec"), value: metadata.audioCodec ?? L10n.text("common.unknown")),
+            MediaInfoItem(label: L10n.text("media.sample_rate"), value: metadata.audioSampleRateText),
+            MediaInfoItem(label: L10n.text("media.channels"), value: metadata.audioChannelText),
+            MediaInfoItem(label: L10n.text("media.audio_bitrate"), value: metadata.audioBitRateText)
         ]
     }
 }
@@ -673,7 +704,8 @@ private struct MarkerCard: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(FrameCutColors.secondaryText)
-                .help("跳转到\(title)")
+                .accessibilityLabel(L10n.format("selection.jump_hint", title))
+                .help(L10n.format("selection.jump_hint", "\(title)"))
             }
 
             Text(timecode)
@@ -782,7 +814,7 @@ private struct ErrorBanner: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(FrameCutColors.danger)
             VStack(alignment: .leading, spacing: 1) {
-                Text("无法完成操作")
+                Text(L10n.text("error.operation_failed"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(FrameCutColors.primaryText)
                 Text(message)
@@ -791,7 +823,7 @@ private struct ErrorBanner: View {
                     .lineLimit(1)
             }
             Spacer()
-            Button("重新打开") { model.openVideoPanel() }
+            Button(L10n.text("file.reopen")) { model.openVideoPanel() }
                 .buttonStyle(.plain)
                 .foregroundStyle(FrameCutColors.accentBright)
             Button { model.clearError() } label: {
@@ -836,22 +868,22 @@ private struct ExportStatusBar: View {
             Spacer()
 
             if model.isExporting {
-                Text("\(Int(model.exportProgress * 100))%")
+                Text(L10n.format("common.percent", "\(Int(model.exportProgress * 100))"))
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .monospacedDigit()
                     .foregroundStyle(FrameCutColors.secondaryText)
-                Button("取消") { model.cancelExport() }
+                Button(L10n.text("common.cancel")) { model.cancelExport() }
                     .buttonStyle(.plain)
                     .foregroundStyle(FrameCutColors.danger)
             } else if case .completed = model.exportState {
-                Button("在 Finder 中显示") { model.revealLastExport() }
+                Button(L10n.text("file.reveal_in_finder")) { model.revealLastExport() }
                     .buttonStyle(.plain)
                     .foregroundStyle(FrameCutColors.accentBright)
                 Button { model.dismissExportStatus() } label: { Image(systemName: "xmark") }
                     .buttonStyle(.plain)
                     .foregroundStyle(FrameCutColors.secondaryText)
             } else {
-                Button("关闭") { model.dismissExportStatus() }
+                Button(L10n.text("common.close")) { model.dismissExportStatus() }
                     .buttonStyle(.plain)
                     .foregroundStyle(FrameCutColors.secondaryText)
             }
@@ -882,11 +914,11 @@ private struct ExportStatusBar: View {
 
     private var title: String {
         switch model.exportState {
-        case .preparing: return "正在准备导出"
-        case .exporting: return "正在导出所选片段"
-        case .completed: return "片段已保存"
-        case .cancelled: return "导出已取消"
-        case .failed: return "导出失败"
+        case .preparing: return L10n.text("export.preparing")
+        case .exporting: return L10n.text("export.exporting")
+        case .completed: return L10n.text("export.completed")
+        case .cancelled: return L10n.text("export.cancelled")
+        case .failed: return L10n.text("export.failed")
         case .idle: return ""
         }
     }
@@ -895,7 +927,7 @@ private struct ExportStatusBar: View {
         switch model.exportState {
         case let .completed(url): return url.path
         case let .failed(message): return message
-        case .cancelled: return "没有写入新的片段。"
+        case .cancelled: return L10n.text("export.cancelled_detail")
         default: return nil
         }
     }
@@ -916,7 +948,7 @@ private struct FooterStatusBar: View {
 
             Spacer()
 
-            Label("仅在本机处理，不上传视频", systemImage: "lock.fill")
+            Label(L10n.text("privacy.local_only"), systemImage: "lock.fill")
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(FrameCutColors.tertiaryText)
         }
@@ -938,15 +970,15 @@ private struct FooterStatusBar: View {
 
     private var statusText: String {
         if model.isPreparingCompatibilityMedia {
-            let status = model.compatibilityPreparationStatus ?? "正在准备兼容预览…"
+            let status = model.compatibilityPreparationStatus ?? L10n.text("compatibility.preparing_ellipsis")
             guard let progress = model.compatibilityPreparationProgress else { return status }
-            return "\(status) \(Int((progress * 100).rounded()))%"
+            return L10n.format("common.status_progress", status, "\(Int((progress * 100).rounded()))")
         }
-        if model.isLoading { return "正在读取媒体信息…" }
-        if model.isIndexingFrames { return "正在扫描真实帧时间和关键帧；完成后即可精确导出" }
+        if model.isLoading { return L10n.text("file.loading_metadata") }
+        if model.isIndexingFrames { return L10n.text("timeline.scanning") }
         if let notice = model.indexingNotice { return notice }
-        if model.canEdit { return "精确帧索引就绪" }
-        return "等待打开视频"
+        if model.canEdit { return L10n.text("timeline.ready") }
+        return L10n.text("file.waiting")
     }
 }
 
@@ -966,32 +998,32 @@ private struct ExportReviewSheet: View {
                 .frame(width: 46, height: 46)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("导出所选片段")
+                    Text(L10n.text("export.selected_clip"))
                         .font(.system(size: 19, weight: .semibold))
                         .foregroundStyle(FrameCutColors.primaryText)
-                    Text("确认范围后，再选择保存位置")
+                    Text(L10n.text("export.review_subtitle"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(FrameCutColors.secondaryText)
                 }
             }
 
             VStack(spacing: 0) {
-                ReviewRow(label: "源视频", value: model.fileDisplayPath)
+                ReviewRow(label: L10n.text("export.source_video"), value: model.fileDisplayPath, monospaced: false)
                 Divider().overlay(FrameCutColors.border)
-                ReviewRow(label: "入点", value: "\(model.selectionStartTimecode)  ·  第 \(model.selectionStartFrameNumber.formatted()) 帧")
+                ReviewRow(label: L10n.text("selection.in"), value: L10n.format("selection.time_and_frame", "\(model.selectionStartTimecode)", "\(L10n.number(model.selectionStartFrameNumber))"))
                 Divider().overlay(FrameCutColors.border)
-                ReviewRow(label: "出点", value: "\(model.selectionEndTimecode)  ·  第 \(model.selectionEndFrameNumber.formatted()) 帧")
+                ReviewRow(label: L10n.text("selection.out"), value: L10n.format("selection.time_and_frame", "\(model.selectionEndTimecode)", "\(L10n.number(model.selectionEndFrameNumber))"))
                 Divider().overlay(FrameCutColors.border)
-                ReviewRow(label: "片段", value: "\(model.selectionDurationClock)  ·  \(model.selectionFrameCount.formatted()) 帧")
+                ReviewRow(label: L10n.text("export.segment"), value: L10n.format("selection.duration_and_frames", "\(model.selectionDurationClock)", "\(L10n.number(model.selectionFrameCount))"))
             }
             .padding(.horizontal, 13)
             .panelSurface(radius: 9, color: FrameCutColors.elevated)
 
             VStack(alignment: .leading, spacing: 9) {
-                Text("输出格式")
+                Text(L10n.text("export.format"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(FrameCutColors.secondaryText)
-                Picker("输出格式", selection: $model.exportFormat) {
+                Picker(L10n.text("export.format"), selection: $model.exportFormat) {
                     ForEach(ExportFormat.allCases) { format in
                         Text(format.title).tag(format)
                     }
@@ -1002,16 +1034,16 @@ private struct ExportReviewSheet: View {
 
             VStack(alignment: .leading, spacing: 9) {
                 HStack {
-                    Text("压缩质量")
+                    Text(L10n.text("export.compression"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(FrameCutColors.secondaryText)
                     Spacer()
-                    Text("智能模式推荐")
+                    Text(L10n.text("export.smart_recommended"))
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(FrameCutColors.tertiaryText)
                 }
 
-                Picker("压缩质量", selection: $model.exportCompression) {
+                Picker(L10n.text("export.compression"), selection: $model.exportCompression) {
                     ForEach(ExportCompression.allCases) { compression in
                         Text(compression.title).tag(compression)
                     }
@@ -1031,15 +1063,17 @@ private struct ExportReviewSheet: View {
                         Text(model.exportCompressionDetail)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(FrameCutColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(model.exportCompressionAnalysisText)
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(FrameCutColors.tertiaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     Spacer(minLength: 12)
 
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("预计大小")
+                        Text(L10n.text("export.estimated_size"))
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(FrameCutColors.tertiaryText)
                         Text(model.estimatedExportSizeText)
@@ -1060,7 +1094,7 @@ private struct ExportReviewSheet: View {
             HStack(spacing: 8) {
                 Image(systemName: "lock.shield.fill")
                     .foregroundStyle(FrameCutColors.success)
-                Text("导出只会创建新文件，源视频保持不变；覆盖文件仍由 macOS 再次确认。")
+                Text(L10n.text("export.source_unchanged"))
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(FrameCutColors.secondaryText)
             }
@@ -1070,7 +1104,7 @@ private struct ExportReviewSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") {
+                Button(L10n.text("common.cancel")) {
                     model.showExportReview = false
                 }
                 .buttonStyle(ToolbarActionButtonStyle())
@@ -1078,7 +1112,7 @@ private struct ExportReviewSheet: View {
                 Button {
                     model.chooseExportDestination()
                 } label: {
-                    Label("选择保存位置", systemImage: "arrow.right")
+                    Label(L10n.text("export.choose_location"), systemImage: "arrow.right")
                 }
                 .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
             }
@@ -1092,15 +1126,16 @@ private struct ExportReviewSheet: View {
 private struct ReviewRow: View {
     let label: String
     let value: String
+    var monospaced = true
 
     var body: some View {
         HStack(spacing: 16) {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(FrameCutColors.tertiaryText)
-                .frame(width: 48, alignment: .leading)
+                .frame(width: 84, alignment: .leading)
             Text(value)
-                .font(.system(size: 11, weight: .semibold, design: label == "源视频" ? .default : .monospaced))
+                .font(.system(size: 11, weight: .semibold, design: monospaced ? .monospaced : .default))
                 .monospacedDigit()
                 .foregroundStyle(FrameCutColors.primaryText)
                 .lineLimit(1)
