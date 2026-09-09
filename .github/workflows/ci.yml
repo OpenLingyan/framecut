@@ -37,6 +37,11 @@ jobs:
           FRAMECUT_PR_BODY: ${{ github.event.pull_request.body || '' }}
         run: ./scripts/check-repository-metadata.py
 
+      - name: Set up packaging Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
       - name: Configure QA paths
         run: |
           qa_video="$RUNNER_TEMP/framecut-qa/qa-sample.mp4"
@@ -76,7 +81,7 @@ jobs:
       - name: Run complete test suite
         run: swift test
 
-      - name: Package and verify app bundle
+      - name: Package and verify app, DMG installer, and ZIP
         run: |
           ./scripts/package-release.sh
           plutil -lint dist/FrameCut.app/Contents/Info.plist
@@ -84,7 +89,9 @@ jobs:
           lipo dist/FrameCut.app/Contents/MacOS/FrameCut -verify_arch arm64 x86_64
           codesign --verify --deep --strict --verbose=2 dist/FrameCut.app
           version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/FrameCut.app/Contents/Info.plist)"
-          archive="FrameCut-${version}-macOS-universal2-unsigned.zip"
-          test -f "dist/${archive}"
-          test -f "dist/${archive}.sha256"
-          (cd dist && shasum -a 256 -c "${archive}.sha256")
+          for extension in dmg zip; do
+            artifact="FrameCut-${version}-macOS-universal2-unsigned.${extension}"
+            test -f "dist/${artifact}"
+            test -f "dist/${artifact}.sha256"
+            (cd dist && shasum -a 256 -c "${artifact}.sha256")
+          done
