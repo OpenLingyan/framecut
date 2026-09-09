@@ -9,7 +9,7 @@
     <key>CFBundleExecutable</key>
     <string>FrameCut</string>
     <key>CFBundleIdentifier</key>
-    <string>local.framecut.app</string>
+    <string>com.openlingyan.framecut</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

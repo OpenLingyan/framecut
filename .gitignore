@@ -1,6 +1,9 @@
 .build/
 .swiftpm/
-dist/*.app/
+dist/
 .DS_Store
 .design/
 .github-ssh/
+.release-secrets/
+*.p12
+AuthKey_*.p8

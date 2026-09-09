@@ -60,13 +60,20 @@ jobs:
         run: ./scripts/generate-qa-video.sh "$FRAMECUT_QA_VIDEO"
 
       - name: Build release executable
-        run: swift build -c release
+        run: swift build -c release --arch arm64 --arch x86_64
 
       - name: Run complete test suite
         run: swift test
 
       - name: Package and verify app bundle
         run: |
-          ./scripts/build-app.sh
+          ./scripts/package-release.sh
           plutil -lint dist/FrameCut.app/Contents/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' dist/FrameCut.app/Contents/Info.plist)" = "com.openlingyan.framecut"
+          lipo dist/FrameCut.app/Contents/MacOS/FrameCut -verify_arch arm64 x86_64
           codesign --verify --deep --strict --verbose=2 dist/FrameCut.app
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/FrameCut.app/Contents/Info.plist)"
+          archive="FrameCut-${version}-macOS-universal2-unsigned.zip"
+          test -f "dist/${archive}"
+          test -f "dist/${archive}.sha256"
+          (cd dist && shasum -a 256 -c "${archive}.sha256")

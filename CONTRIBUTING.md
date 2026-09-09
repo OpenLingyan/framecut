@@ -40,7 +40,7 @@ swift test
 
 ```bash
 for shell_script in scripts/*.sh; do zsh -n "$shell_script"; done
-swift build -c release
+swift build -c release --arch arm64 --arch x86_64
 swift test
 ```
 
@@ -55,9 +55,10 @@ FRAMECUT_COMPATIBILITY_QA_VIDEO="$PWD/.design/fixtures/qa-sample.mp4" \
 swift test
 
 ./scripts/build-app.sh
+lipo dist/FrameCut.app/Contents/MacOS/FrameCut -verify_arch arm64 x86_64
 ```
 
-完整测试应无失败、无跳过。测试生成的 `.design/` 内容和 `dist/FrameCut.app` 已被 Git 忽略。
+完整测试应无失败、无跳过。测试生成的 `.design/` 内容和全部 `dist/` 发布产物已被 Git 忽略。
 
 ## Pull Request
 
