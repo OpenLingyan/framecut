@@ -19,16 +19,19 @@ jobs:
     name: macOS 14 / Swift
     runs-on: macos-14
     timeout-minutes: 30
-    env:
-      FRAMECUT_QA_VIDEO: ${{ runner.temp }}/framecut-qa/qa-sample.mp4
-      FRAMECUT_CONTENT_QA_VIDEO: ${{ runner.temp }}/framecut-qa/qa-sample.mp4
-      FRAMECUT_COMPATIBILITY_QA_VIDEO: ${{ runner.temp }}/framecut-qa/qa-sample.mp4
 
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Configure QA paths
+        run: |
+          qa_video="$RUNNER_TEMP/framecut-qa/qa-sample.mp4"
+          echo "FRAMECUT_QA_VIDEO=$qa_video" >> "$GITHUB_ENV"
+          echo "FRAMECUT_CONTENT_QA_VIDEO=$qa_video" >> "$GITHUB_ENV"
+          echo "FRAMECUT_COMPATIBILITY_QA_VIDEO=$qa_video" >> "$GITHUB_ENV"
 
       - name: Show toolchain versions
         run: |
