@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: macOS 14 / Swift
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configure QA paths
+        run: |
+          qa_video="$RUNNER_TEMP/framecut-qa/qa-sample.mp4"
+          echo "FRAMECUT_QA_VIDEO=$qa_video" >> "$GITHUB_ENV"
+          echo "FRAMECUT_CONTENT_QA_VIDEO=$qa_video" >> "$GITHUB_ENV"
+          echo "FRAMECUT_COMPATIBILITY_QA_VIDEO=$qa_video" >> "$GITHUB_ENV"
+
+      - name: Show toolchain versions
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Install FFmpeg runtime
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          if ! brew list --versions ffmpeg >/dev/null 2>&1; then
+            brew install ffmpeg
+          fi
+          ffmpeg -hide_banner -version
+          ffprobe -hide_banner -version
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'libx264|h264_videotoolbox'
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep 'libx265'
+
+      - name: Check shell scripts
+        run: |
+          for shell_script in scripts/*.sh; do
+            zsh -n "$shell_script"
+          done
+
+      - name: Generate synthetic QA video
+        run: ./scripts/generate-qa-video.sh "$FRAMECUT_QA_VIDEO"
+
+      - name: Build release executable
+        run: swift build -c release --arch arm64 --arch x86_64
+
+      - name: Run complete test suite
+        run: swift test
+
+      - name: Package and verify app bundle
+        run: |
+          ./scripts/package-release.sh
+          plutil -lint dist/FrameCut.app/Contents/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' dist/FrameCut.app/Contents/Info.plist)" = "com.openlingyan.framecut"
+          lipo dist/FrameCut.app/Contents/MacOS/FrameCut -verify_arch arm64 x86_64
+          codesign --verify --deep --strict --verbose=2 dist/FrameCut.app
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/FrameCut.app/Contents/Info.plist)"
+          archive="FrameCut-${version}-macOS-universal2-unsigned.zip"
+          test -f "dist/${archive}"
+          test -f "dist/${archive}.sha256"
+          (cd dist && shasum -a 256 -c "${archive}.sha256")
