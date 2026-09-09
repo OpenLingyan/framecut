@@ -22,6 +22,14 @@ FFmpeg 官方说明其默认采用 GNU Lesser General Public License 2.1 或更�
 
 Homebrew 本身不随 FrameCut 分发。通过 Homebrew 安装的软件包各自采用其上游项目的许可证，Homebrew 的许可证不替代这些软件包的许可证。
 
+## DMG packaging tools (build time only)
+
+- [dmgbuild](https://github.com/dmgbuild/dmgbuild): MIT License; creates the compressed installer and Finder layout without GUI automation.
+- [ds-store](https://github.com/dmgbuild/ds_store): MIT License; writes and verifies Finder view metadata.
+- [mac-alias](https://github.com/dmgbuild/mac_alias): MIT License; creates the Finder background alias.
+
+Exact versions and wheel SHA-256 hashes are pinned in `scripts/dmg-requirements.txt`. Packaging installs these tools from PyPI into the ignored `.build/dmg-tools` virtual environment. They are not copied into `FrameCut.app`, the DMG, or the ZIP, and end users do not need Python or these tools. Installer artwork is rendered by project-owned Swift/AppKit code using system fonts and the existing FrameCut icon; no new third-party artwork or font files are distributed.
+
 ## 后续分发注意事项
 
 如果未来版本把 FFmpeg、Homebrew 或其他第三方二进制直接放入 App、DMG 或安装包，发布者应在发布前重新核对实际构建选项、完整许可证文本、源代码提供方式及其他分发义务，并同步更新本文件。

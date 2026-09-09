@@ -34,6 +34,8 @@ FrameCut 当前没有 Apple Developer ID 签名和 Apple 公证。GitHub Release
 
 只从 [`OpenLingyan/framecut` Releases](https://github.com/OpenLingyan/framecut/releases) 下载，并在运行前核对随包提供的 SHA-256 文件。不要关闭 Gatekeeper，也不要执行来源不明的终端绕过命令。完整步骤、兼容范围和风险说明见 [`docs/INSTALLATION.md`](INSTALLATION.md)。
 
+推荐下载 `.dmg` 和同名 `.dmg.sha256` 校验文件。校验通过后，双击 DMG 打开安装窗口，将 **FrameCut** 拖到右侧 **Applications** 文件夹；从“应用程序”打开安装后的 App，再推出磁盘映像。也可选择 ZIP 压缩包安装。
+
 ## 媒体兼容清单
 
 | 类型 | 常见格式 |
@@ -57,11 +59,13 @@ open dist/FrameCut.app
 FRAMECUT_BUILD_ARCHS=arm64 ./scripts/build-app.sh
 ```
 
-生成可上传到 GitHub Releases 的 ZIP 和 SHA-256 文件：
+生成可上传到 GitHub Releases 的拖拽安装 DMG、备用 ZIP 及各自的 SHA-256 校验文件：
 
 ```bash
 ./scripts/package-release.sh
 ```
+
+打包还需要 Python 3.10+。脚本会在 Git 忽略的 `.build/dmg-tools` 独立环境中安装锁定版本和哈希的 `dmgbuild` 工具，并挂载检查 App 签名、双架构、Applications 快捷方式及 Finder 布局。这些工具只用于开发者打包，不随 App 分发，用户无需安装 Python 或打包工具。
 
 这些产物适合无签名预览发布；若要消除 Gatekeeper 的未知开发者警告，仍需使用 Apple Developer ID 签名和公证。维护者发布流程见 [`docs/RELEASING.md`](RELEASING.md)。
 

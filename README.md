@@ -34,6 +34,8 @@ FrameCut currently has neither an Apple Developer ID signature nor Apple notariz
 
 Download only from the official [`OpenLingyan/framecut` Releases](https://github.com/OpenLingyan/framecut/releases) page and verify the included SHA-256 checksum before running the app. Do not disable Gatekeeper or run untrusted Terminal bypass commands. See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for the complete procedure, compatibility notes, and risk information.
 
+Choose the `.dmg` download and its matching `.dmg.sha256` file. After verification, double-click the DMG to open the installer window, then drag **FrameCut** onto **Applications**. Launch the installed copy from Applications and eject the disk image. A ZIP archive is also available as an alternative.
+
 ## Media Compatibility
 
 | Type | Common formats |
@@ -57,11 +59,13 @@ The script first generates a complete `FrameCut.icns` icon set from `Resources/F
 FRAMECUT_BUILD_ARCHS=arm64 ./scripts/build-app.sh
 ```
 
-Generate a ZIP archive and SHA-256 checksum suitable for GitHub Releases:
+Generate a drag-to-install DMG, an alternative ZIP archive, and their SHA-256 checksums for GitHub Releases:
 
 ```bash
 ./scripts/package-release.sh
 ```
+
+Packaging requires Python 3.10+ in addition to the app build tools. The script installs hash-pinned `dmgbuild` tools into an isolated, Git-ignored `.build/dmg-tools` environment and verifies the mounted installer, including its app signature, architectures, Applications shortcut, and Finder layout. These packaging tools are not included in the app or required on users' Macs.
 
 These artifacts are suitable for unsigned preview releases. Removing Gatekeeper's unidentified-developer warning still requires Apple Developer ID signing and notarization. Maintainers should follow [`docs/RELEASING.md`](docs/RELEASING.md).
 
