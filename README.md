@@ -20,10 +20,17 @@ FrameCut 是一个原生 macOS 视频切割工具。它可以打开或拖入本�
 ## 系统要求
 
 - macOS 14 Sonoma 或更高版本。
+- 官方预览构建计划同时支持 Apple Silicon 与 Intel Mac（Universal 2）。
 - 从源码构建需要 Xcode 15 或更高版本及 Swift 5.10+。
 - 原生格式无需额外依赖；其他容器、编解码兼容预览与内容自适应压缩需要 FFmpeg，本机可通过 `brew install ffmpeg` 安装。
 
 FrameCut 不捆绑 Homebrew 或 FFmpeg 二进制文件。组件用途、安装边界及各自许可信息见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+
+## 下载与安装
+
+FrameCut 当前没有 Apple Developer ID 签名和 Apple 公证。GitHub Releases 中提供的二进制版本应视为无签名预览版；macOS 首次打开时会阻止直接运行，需要用户在“系统设置 → 隐私与安全性”中确认“仍要打开”。
+
+只从 [`OpenLingyan/framecut` Releases](https://github.com/OpenLingyan/framecut/releases) 下载，并在运行前核对随包提供的 SHA-256 文件。不要关闭 Gatekeeper，也不要执行来源不明的终端绕过命令。完整步骤、兼容范围和风险说明见 [`docs/INSTALLATION.md`](docs/INSTALLATION.md)。
 
 ## 媒体兼容清单
 
@@ -42,7 +49,19 @@ FrameCut 不捆绑 Homebrew 或 FFmpeg 二进制文件。组件用途、安装�
 open dist/FrameCut.app
 ```
 
-脚本会先由 `Resources/FrameCut.png` 生成完整尺寸的 `FrameCut.icns`，再生成并临时签名 `dist/FrameCut.app`。它适合在本机直接运行；若要向其他 Mac 分发，仍需使用自己的 Apple Developer 证书签名和公证。
+脚本会先由 `Resources/FrameCut.png` 生成完整尺寸的 `FrameCut.icns`，再构建包含 `arm64` 和 `x86_64` 的 Universal 2 App，并进行 ad-hoc 临时签名。仅需本机架构时可以指定，例如：
+
+```bash
+FRAMECUT_BUILD_ARCHS=arm64 ./scripts/build-app.sh
+```
+
+生成可上传到 GitHub Releases 的 ZIP 和 SHA-256 文件：
+
+```bash
+./scripts/package-release.sh
+```
+
+这些产物适合无签名预览发布；若要消除 Gatekeeper 的未知开发者警告，仍需使用 Apple Developer ID 签名和公证。维护者发布流程见 [`docs/RELEASING.md`](docs/RELEASING.md)。
 
 开发时也可以直接运行：
 
