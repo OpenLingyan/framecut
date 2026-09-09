@@ -18,6 +18,7 @@ FrameCut 是一个原生 macOS 视频切割工具。它可以打开或拖入本�
 - 兼容智能导出直接读取源文件，使用经过多场景试压校准的 x265 CRF 24 内容自适应压缩，不把预览代理的损失带入成品。
 - 首次启动自动进行运行环境自检；仅在缺少媒体组件时弹出向导，先引导安装 Homebrew，再通过 Homebrew 安装所需组件。只有复检全部通过才会在本机偏好设置中保存完成标记；失败或稍后处理时，下次启动会继续自检。
 - 拖放视频和完整键盘快捷键。
+- 英语和简体中文界面，首次启动自动选择语言，并在本机保存用户选择。
 
 ## 系统要求
 
@@ -35,6 +36,14 @@ FrameCut 当前没有 Apple Developer ID 签名和 Apple 公证。GitHub Release
 只从 [`OpenLingyan/framecut` Releases](https://github.com/OpenLingyan/framecut/releases) 下载，并在运行前核对随包提供的 SHA-256 文件。不要关闭 Gatekeeper，也不要执行来源不明的终端绕过命令。完整步骤、兼容范围和风险说明见 [`docs/INSTALLATION.md`](INSTALLATION.md)。
 
 推荐下载 `.dmg` 和同名 `.dmg.sha256` 校验文件。校验通过后，双击 DMG 打开安装窗口，将 **FrameCut** 拖到右侧 **Applications** 文件夹；从“应用程序”打开安装后的 App，再推出磁盘映像。也可选择 ZIP 压缩包安装。
+
+## 界面语言
+
+首次运行支持多语言的版本时，系统首选语言为中文（包括繁体中文地区）的用户默认使用简体中文，其他语言的系统默认使用英语。旧版本升级后，若尚未保存语言设置，也按这一规则初始化。
+
+通过 **FrameCut → 设置…**（`⌘,`）或顶部工具栏的齿轮按钮，选择 **English** 或 **简体中文**。选择后立即保存，退出并重新打开 App 后生效，不会中断正在进行的编辑。后续启动始终使用已保存的选择，不随系统语言变化而改变。
+
+设置保存在本机标准 macOS 偏好设置文件（`~/Library/Preferences/com.openlingyan.framecut.plist`）中，语言设置与组件自检通过标记相互独立。翻译维护说明见 [`docs/LOCALIZATION.md`](LOCALIZATION.md)。
 
 ## 媒体兼容清单
 
@@ -82,6 +91,7 @@ FRAMECUT_BUILD_ARCHS=arm64 ./scripts/build-app.sh
 |---|---|
 | 打开视频 | `⌘O` |
 | 导出片段 | `⌘E` |
+| 打开设置 | `⌘,` |
 | 播放 / 暂停选区 | `Space` |
 | 上一帧 / 下一帧 | `←` / `→` |
 | 上一关键帧 / 下一关键帧 | `⇧←` / `⇧→` |
@@ -90,10 +100,11 @@ FRAMECUT_BUILD_ARCHS=arm64 ./scripts/build-app.sh
 ## 测试
 
 ```bash
+python3 scripts/check-localizations.py
 swift test
 ```
 
-项目包含时间码、帧二分定位、关键帧跳转和包含式出点计算的单元测试。
+项目包含时间码、帧二分定位、关键帧跳转、包含式出点计算、语言选择与持久化、语言资源完整性的测试。打包时还会从生成的 App 和挂载后的 DMG 中验证两套语言包。
 
 ## 参与贡献与安全
 

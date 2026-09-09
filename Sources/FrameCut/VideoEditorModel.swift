@@ -12,8 +12,8 @@ enum ExportFormat: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .mp4: return "MPEG-4 (.mp4)"
-        case .mov: return "QuickTime (.mov)"
+        case .mp4: return L10n.text("format.mp4")
+        case .mov: return L10n.text("format.mov")
         }
     }
 
@@ -51,19 +51,19 @@ enum ExportCompression: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .smart: return "智能推荐"
-        case .highQuality: return "高质量"
-        case .balanced: return "均衡"
-        case .spaceSaving: return "节省空间"
+        case .smart: return L10n.text("compression.smart")
+        case .highQuality: return L10n.text("compression.high_quality")
+        case .balanced: return L10n.text("compression.balanced")
+        case .spaceSaving: return L10n.text("compression.space_saving")
         }
     }
 
     var detail: String {
         switch self {
-        case .smart: return "根据源文件画质和码率自动计算，保持原始画面尺寸"
-        case .highQuality: return "保留原始画面尺寸，文件较大"
-        case .balanced: return "适度降低画面尺寸，推荐日常分享"
-        case .spaceSaving: return "更强压缩，适合快速传输和归档"
+        case .smart: return L10n.text("compression.smart_detail")
+        case .highQuality: return L10n.text("compression.high_quality_detail")
+        case .balanced: return L10n.text("compression.balanced_detail")
+        case .spaceSaving: return L10n.text("compression.space_saving_detail")
         }
     }
 
@@ -321,11 +321,11 @@ final class VideoEditorModel: ObservableObject {
     }
 
     var fileDisplayName: String {
-        mediaURL?.lastPathComponent ?? "尚未打开视频"
+        mediaURL?.lastPathComponent ?? L10n.text("file.no_video")
     }
 
     var fileDisplayPath: String {
-        mediaURL?.standardizedFileURL.path ?? "尚未打开视频"
+        mediaURL?.standardizedFileURL.path ?? L10n.text("file.no_video")
     }
 
     var exportDefaultDirectoryURL: URL? {
@@ -334,7 +334,7 @@ final class VideoEditorModel: ObservableObject {
 
     var exportSuggestedName: String {
         let stem = mediaURL?.deletingPathExtension().lastPathComponent ?? "FrameCut"
-        return "\(stem)-片段.\(exportFormat.fileExtension)"
+        return L10n.format("export.suggested_filename", "\(stem)", "\(exportFormat.fileExtension)")
     }
 
     var estimatedExportSizeText: String {
@@ -343,7 +343,7 @@ final class VideoEditorModel: ObservableObject {
             metadata: metadata,
             duration: selectionDuration
         )
-        return ByteCountFormatter.string(fromByteCount: byteCount, countStyle: .file)
+        return L10n.byteCount(byteCount)
     }
 
     var smartCompressionRecommendation: SmartCompressionRecommendation? {
@@ -352,7 +352,7 @@ final class VideoEditorModel: ObservableObject {
 
     var exportCompressionDetail: String {
         if exportCompression == .smart, usesCompatibilityPipeline {
-            return "已按多场景试压校准，导出直接读取源文件并保留原始尺寸"
+            return L10n.text("compression.compatibility_detail")
         }
         if exportCompression == .smart, let recommendation = smartCompressionRecommendation {
             return recommendation.assessment.detail
@@ -363,32 +363,32 @@ final class VideoEditorModel: ObservableObject {
     var exportCompressionAnalysisText: String {
         guard exportCompression == .smart,
               let recommendation = smartCompressionRecommendation else {
-            return "实际大小会因画面复杂度略有变化"
+            return L10n.text("compression.size_notice")
         }
 
         let sourceRate = recommendation.sourceVideoBitRate > 0
             ? recommendation.sourceVideoBitRateText
-            : "未知"
+            : L10n.text("common.unknown")
         if usesCompatibilityPipeline {
-            return "x265 CRF 24 · 源 \(sourceRate) → 预计 \(recommendation.targetVideoBitRateText) · HEVC"
+            return L10n.format("compression.compatibility_analysis", "\(sourceRate)", "\(recommendation.targetVideoBitRateText)")
         }
-        return "\(recommendation.assessment.title) · 源 \(sourceRate) → 建议 \(recommendation.targetVideoBitRateText) · HEVC"
+        return L10n.format("compression.analysis", "\(recommendation.assessment.title)", "\(sourceRate)", "\(recommendation.targetVideoBitRateText)")
     }
 
     var estimatedExportReductionText: String? {
         guard exportCompression == .smart,
               let percentage = smartCompressionRecommendation?.reductionPercent else { return nil }
         if percentage < 5 {
-            return "源文件已接近合理码率"
+            return L10n.text("compression.already_efficient")
         }
-        return "预计减小约 \(percentage)%"
+        return L10n.format("compression.estimated_reduction", "\(percentage)")
     }
 
     func openVideoPanel() {
         let panel = NSOpenPanel()
-        panel.title = "打开视频"
-        panel.message = "选择要逐帧切割的本地视频"
-        panel.prompt = "打开"
+        panel.title = L10n.text("file.open_video")
+        panel.message = L10n.text("file.open_panel_message")
+        panel.prompt = L10n.text("common.open")
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
@@ -427,7 +427,7 @@ final class VideoEditorModel: ObservableObject {
 
     func loadVideo(_ url: URL) {
         guard !isExporting else {
-            errorMessage = "请先完成或取消当前导出任务。"
+            errorMessage = L10n.text("error.export_in_progress")
             return
         }
 
@@ -803,9 +803,9 @@ final class VideoEditorModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let panel = NSSavePanel()
-            panel.title = "导出所选片段"
-            panel.message = "源视频不会被修改 · \(self.exportCompression.title)压缩"
-            panel.prompt = "开始导出"
+            panel.title = L10n.text("export.selected_clip")
+            panel.message = L10n.format("export.save_panel_message", "\(self.exportCompression.title)")
+            panel.prompt = L10n.text("export.start")
             panel.canCreateDirectories = true
             panel.isExtensionHidden = false
             panel.allowsOtherFileTypes = false
@@ -992,7 +992,7 @@ final class VideoEditorModel: ObservableObject {
             switch result {
             case let .success(index):
                 guard !index.frameTimes.isEmpty else {
-                    self.indexingNotice = "无法读取帧时间，导出已暂停。"
+                    self.indexingNotice = L10n.text("error.frame_times_unavailable")
                     return
                 }
                 self.frameTimes = index.frameTimes
@@ -1009,7 +1009,7 @@ final class VideoEditorModel: ObservableObject {
                 }
             case let .failure(error):
                 if error is CancellationError { return }
-                self.indexingNotice = "帧索引失败：\(error.localizedDescription)"
+                self.indexingNotice = L10n.format("error.frame_index_detail", "\(error.localizedDescription)")
             }
         }
     }
@@ -1334,7 +1334,7 @@ final class VideoEditorModel: ObservableObject {
             exportProgress = 0
             exportState = .failed(
                 errorMessage.isEmpty
-                    ? "内容自适应压缩失败，请重试。"
+                    ? L10n.text("error.adaptive_compression")
                     : errorMessage
             )
         }
@@ -1373,10 +1373,10 @@ final class VideoEditorModel: ObservableObject {
             exportState = .cancelled
         case .failed:
             exportProgress = 0
-            exportState = .failed(session.error?.localizedDescription ?? "导出失败，请重试。")
+            exportState = .failed(session.error?.localizedDescription ?? L10n.text("error.export_retry"))
         default:
             exportProgress = 0
-            exportState = .failed(session.error?.localizedDescription ?? "导出没有完成。")
+            exportState = .failed(session.error?.localizedDescription ?? L10n.text("error.export_incomplete"))
         }
     }
 

@@ -137,12 +137,12 @@ struct TimelineZoomControls: View {
 
             zoomButton(
                 icon: "minus",
-                help: "缩小时间轴（⌘−）",
+                help: L10n.text("timeline.zoom_out_hint"),
                 action: { adjustZoom(by: 0.5) }
             )
             .keyboardShortcut("-", modifiers: .command)
 
-            Text(zoom <= 1.001 ? "全片" : "\(Int(zoom.rounded()))×")
+            Text(zoom <= 1.001 ? L10n.text("timeline.fit") : L10n.format("timeline.zoom_factor", "\(Int(zoom.rounded()))"))
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
                 .monospacedDigit()
                 .foregroundStyle(FrameCutColors.secondaryText)
@@ -150,14 +150,14 @@ struct TimelineZoomControls: View {
 
             zoomButton(
                 icon: "plus",
-                help: "放大时间轴（⌘+）",
+                help: L10n.text("timeline.zoom_in_hint"),
                 action: { adjustZoom(by: 2) }
             )
             .keyboardShortcut("+", modifiers: .command)
 
             zoomButton(
                 icon: "arrow.counterclockwise",
-                help: "恢复全片视图",
+                help: L10n.text("timeline.reset_zoom_hint"),
                 action: resetZoom
             )
         }
@@ -190,6 +190,7 @@ struct TimelineZoomControls: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(help)
         .help(help)
     }
 
@@ -341,7 +342,7 @@ struct TrimTimelineView: View {
         }
         .frame(height: 110)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("可缩放视频时间线")
+        .accessibilityLabel(L10n.text("timeline.accessibility"))
     }
 
     @ViewBuilder
@@ -492,7 +493,7 @@ struct TrimTimelineView: View {
                     .offset(x: horizontalInset + trackWidth - 30, y: 12)
             }
         }
-        .help("拖动定位；使用鼠标滚轮或触控板双指捏合可缩放")
+        .help(L10n.text("timeline.scrub_hint"))
     }
 
     @ViewBuilder
@@ -541,7 +542,7 @@ struct TrimTimelineView: View {
                 .frame(width: 1, height: overviewHeight + 2)
                 .offset(x: min(max(horizontalInset, playheadX), horizontalInset + trackWidth), y: 1)
 
-            Text("总览")
+            Text(L10n.text("timeline.overview"))
                 .font(.system(size: 8, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.78))
                 .padding(.horizontal, 4)
@@ -566,8 +567,8 @@ struct TrimTimelineView: View {
                         }
                 )
         }
-        .help("全片总览：放大后拖动可平移精细轨道")
-        .accessibilityLabel("全片时间线总览")
+        .help(L10n.text("timeline.overview_hint"))
+        .accessibilityLabel(L10n.text("timeline.overview_accessibility"))
     }
 
     @ViewBuilder
@@ -869,7 +870,7 @@ private struct TimelineHandle: View {
                     dragOrigin = nil
                 }
         )
-        .help(label == "I" ? "拖动入点" : "拖动出点")
+        .help(label == "I" ? L10n.text("selection.drag_in") : L10n.text("selection.drag_out"))
     }
 }
 

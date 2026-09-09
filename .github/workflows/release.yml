@@ -65,6 +65,7 @@ jobs:
       - name: Check scripts and run complete test suite
         run: |
           for shell_script in scripts/*.sh; do zsh -n "$shell_script"; done
+          python3 scripts/check-localizations.py
           swift test
 
       - name: Package and verify Universal 2 installers

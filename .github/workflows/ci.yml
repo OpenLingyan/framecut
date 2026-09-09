@@ -72,6 +72,9 @@ jobs:
             zsh -n "$shell_script"
           done
 
+      - name: Check language catalogs and UI text
+        run: python3 scripts/check-localizations.py
+
       - name: Generate synthetic QA video
         run: ./scripts/generate-qa-video.sh "$FRAMECUT_QA_VIDEO"
 

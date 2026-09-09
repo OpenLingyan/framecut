@@ -39,9 +39,15 @@ fi
 swift build "${SWIFT_BUILD_ARGUMENTS[@]}"
 BINARY_DIRECTORY="$(swift build "${SWIFT_BUILD_ARGUMENTS[@]}" --show-bin-path)"
 EXECUTABLE="${BINARY_DIRECTORY}/FrameCut"
+LOCALIZATION_BUNDLE="${BINARY_DIRECTORY}/FrameCut_FrameCut.bundle"
 
 if [[ ! -x "${EXECUTABLE}" ]]; then
     echo "Release executable was not produced at ${EXECUTABLE}." >&2
+    exit 1
+fi
+
+if [[ ! -d "${LOCALIZATION_BUNDLE}" ]]; then
+    echo "Localization resources were not produced at ${LOCALIZATION_BUNDLE}." >&2
     exit 1
 fi
 
@@ -53,6 +59,10 @@ mkdir -p "${CONTENTS_DIR}/MacOS" "${CONTENTS_DIR}/Resources"
 cp "${EXECUTABLE}" "${CONTENTS_DIR}/MacOS/FrameCut"
 cp "${PROJECT_ROOT}/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
 chmod +x "${CONTENTS_DIR}/MacOS/FrameCut"
+ditto "${LOCALIZATION_BUNDLE}" "${CONTENTS_DIR}/Resources/FrameCut_FrameCut.bundle"
+for language in en zh-Hans; do
+    ditto "${PROJECT_ROOT}/Resources/${language}.lproj" "${CONTENTS_DIR}/Resources/${language}.lproj"
+done
 
 if [[ -f "${PROJECT_ROOT}/Resources/FrameCut.icns" ]]; then
     cp "${PROJECT_ROOT}/Resources/FrameCut.icns" "${CONTENTS_DIR}/Resources/FrameCut.icns"
@@ -70,4 +80,5 @@ else
 fi
 
 BUILT_ARCHS="$(lipo -archs "${CONTENTS_DIR}/MacOS/FrameCut")"
+"${CONTENTS_DIR}/MacOS/FrameCut" --verify-localizations
 echo "Built ${APP_BUNDLE} (${BUILT_ARCHS}; ${SIGNATURE_DESCRIPTION} signature)"

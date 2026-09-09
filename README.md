@@ -18,6 +18,7 @@ FrameCut is a native macOS video trimming app. It opens local videos through a f
 - Reads the original source for compatibility-aware smart export and uses content-adaptive x265 CRF 24 compression calibrated across varied test material, so proxy-preview loss is not carried into the final output.
 - Runs an environment self-check on first launch. When media components are missing, a guided installer helps install Homebrew first and then the required packages through Homebrew. The check is marked complete in local preferences only after every verification passes; otherwise, it runs again on the next launch.
 - Supports drag and drop and a complete set of keyboard shortcuts.
+- Offers English and Simplified Chinese interfaces, with automatic first-launch selection and a saved language preference.
 
 ## Requirements
 
@@ -35,6 +36,14 @@ FrameCut currently has neither an Apple Developer ID signature nor Apple notariz
 Download only from the official [`OpenLingyan/framecut` Releases](https://github.com/OpenLingyan/framecut/releases) page and verify the included SHA-256 checksum before running the app. Do not disable Gatekeeper or run untrusted Terminal bypass commands. See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for the complete procedure, compatibility notes, and risk information.
 
 Choose the `.dmg` download and its matching `.dmg.sha256` file. After verification, double-click the DMG to open the installer window, then drag **FrameCut** onto **Applications**. Launch the installed copy from Applications and eject the disk image. A ZIP archive is also available as an alternative.
+
+## Interface Language
+
+On the first launch of a localization-enabled build, FrameCut uses Simplified Chinese when the system's primary preferred language is Chinese, including Traditional Chinese locales. All other systems use English. Existing installations without a saved language follow the same rule on their first launch after upgrading.
+
+Open **FrameCut → Settings…** (`⌘,`) or the toolbar's gear button to choose **English** or **简体中文**. Changes are saved immediately and apply after quitting and reopening the app; an in-progress editing session is not interrupted. Later launches use the saved choice even if the system language changes.
+
+Preferences stay on this Mac in the app's standard macOS preferences file (`~/Library/Preferences/com.openlingyan.framecut.plist`). The language setting is independent of the runtime self-check result. Translation contributors can follow [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md).
 
 ## Media Compatibility
 
@@ -82,6 +91,7 @@ For development, run the app directly with:
 |---|---|
 | Open a video | `⌘O` |
 | Export the selected segment | `⌘E` |
+| Open Settings | `⌘,` |
 | Play or pause the selection | `Space` |
 | Previous or next frame | `←` / `→` |
 | Previous or next keyframe | `⇧←` / `⇧→` |
@@ -90,10 +100,11 @@ For development, run the app directly with:
 ## Testing
 
 ```bash
+python3 scripts/check-localizations.py
 swift test
 ```
 
-The test suite covers timecodes, binary frame lookup, keyframe navigation, and inclusive Out-point calculations.
+The test suite covers timecodes, binary frame lookup, keyframe navigation, inclusive Out-point calculations, language selection and persistence, and language resource completeness. Packaging also validates both language packs from inside the built app and the mounted DMG.
 
 ## Contributing and Security
 

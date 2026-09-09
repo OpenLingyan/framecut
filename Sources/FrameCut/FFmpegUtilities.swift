@@ -60,13 +60,13 @@ enum MediaPreparationStage: Equatable, Sendable {
     var statusText: String {
         switch self {
         case .checking:
-            return "正在检查容器和编解码器…"
+            return L10n.text("compatibility.inspecting")
         case .remuxing:
-            return "正在无损重封装兼容预览…"
+            return L10n.text("compatibility.remuxing")
         case .transcodingHardware:
-            return "系统解码器不支持，正在硬件生成兼容预览…"
+            return L10n.text("compatibility.hardware_preview")
         case .transcodingSoftware:
-            return "硬件路径不可用，正在软件生成兼容预览…"
+            return L10n.text("compatibility.software_preview")
         }
     }
 }
@@ -87,21 +87,21 @@ enum FFmpegToolError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .executableNotFound, .probeExecutableNotFound:
-            return "打开该媒体需要 FFmpeg。请先通过 Homebrew 安装：brew install ffmpeg"
+            return L10n.text("error.ffmpeg_missing")
         case let .probeFailed(message):
             let detail = message.trimmingCharacters(in: .whitespacesAndNewlines)
             return detail.isEmpty
-                ? "无法识别该媒体的容器或编解码信息。"
-                : "无法识别该媒体：\(detail)"
+                ? L10n.text("error.media_probe")
+                : L10n.format("error.media_probe_detail", "\(detail)")
         case let .processFailed(message):
             let detail = message.trimmingCharacters(in: .whitespacesAndNewlines)
             return detail.isEmpty
-                ? "FFmpeg 无法处理这个媒体文件。"
-                : "FFmpeg 无法处理这个媒体文件：\(detail)"
+                ? L10n.text("error.ffmpeg")
+                : L10n.format("error.ffmpeg_detail", "\(detail)")
         case .invalidOutput:
-            return "兼容预览文件生成失败。"
+            return L10n.text("error.compatibility_preview")
         case .unsupportedMedia:
-            return "文件中没有可解码的视频轨道。"
+            return L10n.text("error.no_decodable_video")
         }
     }
 }

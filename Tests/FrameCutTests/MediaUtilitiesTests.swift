@@ -875,7 +875,7 @@ final class MediaUtilitiesTests: XCTestCase {
         XCTAssertEqual(metadata.aspectRatioText, "16:9")
         XCTAssertEqual(metadata.videoBitRateText, "8.40 Mbps")
         XCTAssertEqual(metadata.audioSampleRateText, "48 kHz")
-        XCTAssertEqual(metadata.audioChannelText, "立体声")
+        XCTAssertEqual(metadata.audioChannelText, L10n.text("media.stereo"))
         XCTAssertEqual(metadata.audioBitRateText, "192 kbps")
         XCTAssertFalse(metadata.fileSizeText.isEmpty)
     }
