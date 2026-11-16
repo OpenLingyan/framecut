@@ -78,7 +78,7 @@
 "export.review" = "Review and Export";
 "export.review_hint" = "Review and export the selected clip (⌘E)";
 "export.review_subtitle" = "Confirm the range, then choose where to save";
-"export.save_panel_message" = "The source video stays unchanged · {0} compression";
+"export.save_panel_message" = "The source video stays unchanged · {0}";
 "export.segment" = "Clip";
 "export.selected_clip" = "Export Selected Clip";
 "export.smart_recommended" = "Smart mode recommended";
@@ -243,3 +243,23 @@
 "transport.play_selection" = "Play Selection";
 "transport.previous_frame" = "Previous Frame";
 "transport.previous_keyframe" = "Previous Keyframe";
+
+"export.settings" = "Export settings";
+"export.mode_original" = "Original Settings";
+"export.mode_smart" = "Smart Recommendation";
+"export.mode_custom" = "Custom";
+"export.original_detail" = "Keep the source dimensions, codec, frame rate, and target bitrate.";
+"export.custom_detail" = "Export using your dimensions, codec, frame rate, and target bitrate.";
+"export.custom_defaults" = "Starts with the source video settings";
+"export.reset_original" = "Reset to Source";
+"export.video_codec" = "Video codec";
+"export.width" = "Width";
+"export.height" = "Height";
+"export.target_bitrate" = "Target video bitrate";
+"export.source_bitrate" = "Source video bitrate: {0}";
+"export.invalid_dimensions" = "Width and height must be even whole numbers between 2 and 16384 pixels.";
+"export.invalid_frame_rate" = "Enter a frame rate between 0.001 and 240 fps.";
+"export.invalid_bitrate" = "Enter a bitrate between 0.000001 and 2000 Mbps. If the source bitrate is unavailable, enter a value in Custom.";
+"export.unsupported_source_codec" = "The source codec cannot be encoded with these settings. Choose H.264 or HEVC in Custom, or use Smart Recommendation.";
+"export.invalid_container" = "Choose a container supported by the selected video codec.";
+"export.source_destination" = "Choose a new output file; the source video cannot be replaced.";

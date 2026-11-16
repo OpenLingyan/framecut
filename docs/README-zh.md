@@ -6,7 +6,8 @@ FrameCut 是一个原生 macOS 视频切割工具。它可以打开或拖入本�
 
 ## 主要功能
 
-- 使用 AVFoundation 本地读取和导出，不上传视频。
+- 使用 AVFoundation 和 FFmpeg 本地读取和导出，不上传视频。
+- 导出提供“原始设置 / 智能推荐 / 自定义”三种模式。智能推荐使用 MP4 和 HEVC；自定义默认填入源视频的尺寸、编码、帧率和码率，可逐项调整、选择 MP4 或 MOV，并随时恢复原始数据。
 - 扫描视频样本时间戳，显示真实帧数，并支持上一帧/下一帧。
 - 识别同步样本，支持上一关键帧/下一关键帧。
 - 缩略图时间线、播放头、可拖动的 I/O 手柄和高亮选区。
@@ -25,7 +26,7 @@ FrameCut 是一个原生 macOS 视频切割工具。它可以打开或拖入本�
 - macOS 14 Sonoma 或更高版本。
 - 官方预览构建计划同时支持 Apple Silicon 与 Intel Mac（Universal 2）。
 - 从源码构建需要 Xcode 15 或更高版本及 Swift 5.10+。
-- 原生格式无需额外依赖；其他容器、编解码兼容预览与内容自适应压缩需要 FFmpeg，本机可通过 `brew install ffmpeg` 安装。
+- 打开原生格式和使用原生智能推荐导出无需额外依赖；原始设置、自定义导出、兼容预览及内容自适应压缩需要 FFmpeg，本机可通过 `brew install ffmpeg` 安装。
 
 FrameCut 不捆绑 Homebrew 或 FFmpeg 二进制文件。组件用途、安装边界及各自许可信息见 [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)。
 
@@ -53,7 +54,7 @@ FrameCut 当前没有 Apple Developer ID 签名和 Apple 公证。GitHub Release
 | 音频编解码 | AAC、MP3、AC-3、E-AC-3、Opus、Vorbis、FLAC、ALAC、PCM、WMA、DTS |
 | 容器与流文件 | MP4/M4V、MOV、AVI/DivX、MKV、WebM、WMV/ASF、MPG/MPEG/VOB、TS/M2TS/MTS/M4TS、MXF、FLV/F4V、3GP/3G2、OGV、RM/RMVB、DV/MOD/TOD，以及 H.264/H.265/AV1 裸流 |
 
-具体可解码范围取决于当前 FFmpeg 构建启用的解码器。导出统一使用兼容性更好的 H.264/AAC，智能压缩使用 H.265/HEVC + AAC。
+具体可解码范围取决于当前 FFmpeg 构建启用的解码器。智能推荐使用 MP4、H.265/HEVC 和 AAC。原始设置沿用源视频的尺寸、支持的编码、帧时间和目标码率，重新编码所选片段；自定义支持 H.264、HEVC，以及受支持的源视频编码，两种模式的音频均导出为 AAC。支持的源编码包括 H.264、HEVC、MPEG-4 Part 2、ProRes、Motion JPEG、AV1 和 VP9，具体可用性取决于本机 FFmpeg。暂不支持的源编码可改选自定义 H.264、HEVC 或智能推荐。ProRes 和 Motion JPEG 使用 MOV，其他源容器默认选择兼容的 MP4 或 MOV。码率和文件大小为目标值与估算值，实际结果会随画面内容变化。
 
 ## 构建 macOS 应用
 

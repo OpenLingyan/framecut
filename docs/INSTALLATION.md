@@ -4,7 +4,7 @@
 
 - macOS 14 Sonoma or later.
 - Apple Silicon and Intel Macs (Universal 2).
-- Homebrew and FFmpeg for non-native media formats and content-adaptive compression.
+- Homebrew and FFmpeg for Original Settings and Custom export, non-native media formats, and content-adaptive compression.
 
 FrameCut currently has no Apple Developer ID signature or Apple notarization. GitHub binary releases are unsigned previews: macOS cannot verify their developer identity or confirm an Apple notarization check. A DMG makes installation more convenient; it does not remove this limitation.
 

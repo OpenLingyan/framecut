@@ -41,82 +41,6 @@ enum ExportFormat: String, CaseIterable, Identifiable {
     }
 }
 
-enum ExportCompression: String, CaseIterable, Identifiable {
-    case smart
-    case highQuality
-    case balanced
-    case spaceSaving
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .smart: return L10n.text("compression.smart")
-        case .highQuality: return L10n.text("compression.high_quality")
-        case .balanced: return L10n.text("compression.balanced")
-        case .spaceSaving: return L10n.text("compression.space_saving")
-        }
-    }
-
-    var detail: String {
-        switch self {
-        case .smart: return L10n.text("compression.smart_detail")
-        case .highQuality: return L10n.text("compression.high_quality_detail")
-        case .balanced: return L10n.text("compression.balanced_detail")
-        case .spaceSaving: return L10n.text("compression.space_saving_detail")
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .smart: return "wand.and.stars"
-        case .highQuality: return "sparkles.tv"
-        case .balanced: return "scale.3d"
-        case .spaceSaving: return "arrow.down.right.and.arrow.up.left"
-        }
-    }
-
-    var avPresetName: String {
-        switch self {
-        case .smart: return AVAssetExportPresetHEVCHighestQuality
-        case .highQuality: return AVAssetExportPresetHighestQuality
-        case .balanced: return AVAssetExportPreset640x480
-        case .spaceSaving: return AVAssetExportPresetMediumQuality
-        }
-    }
-
-    func estimatedByteCount(metadata: MediaMetadata, duration: Double) -> Int64 {
-        guard duration > 0 else { return 0 }
-        if self == .smart {
-            return SmartCompressionAdvisor.recommendation(for: metadata)
-                .estimatedByteCount(duration: duration)
-        }
-
-        let pixels = Double(max(1, metadata.width)) * Double(max(1, metadata.height))
-        let framesPerSecond = min(max(metadata.frameRate, 1), 60)
-        let bitsPerPixel: Double
-        let audioBitRate: Double
-
-        switch self {
-        case .smart:
-            return 0
-        case .highQuality:
-            bitsPerPixel = 0.11
-            audioBitRate = metadata.hasAudio ? 160_000 : 0
-        case .balanced:
-            bitsPerPixel = 0.065
-            audioBitRate = metadata.hasAudio ? 128_000 : 0
-        case .spaceSaving:
-            bitsPerPixel = 0.038
-            audioBitRate = metadata.hasAudio ? 96_000 : 0
-        }
-
-        let videoBitRate = pixels * framesPerSecond * bitsPerPixel
-        let totalBitRate = videoBitRate + audioBitRate
-        return Int64((totalBitRate * duration / 8).rounded())
-    }
-}
-
 enum ExportState: Equatable {
     case idle
     case preparing
@@ -164,8 +88,8 @@ final class VideoEditorModel: ObservableObject {
     @Published private(set) var indexingNotice: String?
     @Published var errorMessage: String?
     @Published var showExportReview = false
-    @Published var exportFormat: ExportFormat = .mp4
-    @Published var exportCompression: ExportCompression = .smart
+    @Published var exportMode: ExportMode = .smart
+    @Published var customExportSettings = CustomExportSettings()
     @Published private(set) var exportState: ExportState = .idle
     @Published private(set) var exportProgress = 0.0
 
@@ -337,13 +261,65 @@ final class VideoEditorModel: ObservableObject {
         return L10n.format("export.suggested_filename", "\(stem)", "\(exportFormat.fileExtension)")
     }
 
+    var originalExportSettings: CustomExportSettings {
+        guard let metadata, let mediaURL else { return CustomExportSettings() }
+        return CustomExportSettings(metadata: metadata, sourceURL: mediaURL)
+    }
+
+    var activeExportSettings: CustomExportSettings {
+        exportMode == .custom ? customExportSettings : originalExportSettings
+    }
+
+    var exportFormat: ExportFormat {
+        exportMode == .smart ? .mp4 : activeExportSettings.format
+    }
+
+    var availableExportCodecs: [ExportVideoCodec] {
+        let sourceCodec = originalExportSettings.codec
+        return [.h264, .hevc] + ([ExportVideoCodec.h264, .hevc].contains(sourceCodec) ? [] : [sourceCodec])
+    }
+
+    func exportCodecTitle(_ codec: ExportVideoCodec) -> String {
+        codec == originalExportSettings.codec ? (metadata?.videoCodec ?? codec.title) : codec.title
+    }
+
+    func resetCustomExportSettings() {
+        customExportSettings = originalExportSettings
+    }
+
+    func normalizeCustomExportFormat() {
+        let formats = customExportSettings.codec.supportedFormats
+        if !formats.contains(customExportSettings.format) {
+            customExportSettings.format = formats[0]
+        }
+    }
+
+    var exportSettingsValidationMessage: String? {
+        guard metadata != nil else { return nil }
+        if exportMode != .smart {
+            do { _ = try activeExportSettings.validated() }
+            catch { return error.localizedDescription }
+        }
+        if (exportMode != .smart || usesCompatibilityPipeline), FFmpegTool.executableURL == nil {
+            return FFmpegToolError.executableNotFound.localizedDescription
+        }
+        return nil
+    }
+
+    var canConfirmExport: Bool {
+        canExport && exportSettingsValidationMessage == nil
+    }
+
     var estimatedExportSizeText: String {
         guard let metadata else { return "—" }
-        let byteCount = exportCompression.estimatedByteCount(
-            metadata: metadata,
-            duration: selectionDuration
-        )
-        return L10n.byteCount(byteCount)
+        if exportMode == .smart {
+            return L10n.byteCount(SmartCompressionAdvisor.recommendation(for: metadata)
+                .estimatedByteCount(duration: selectionDuration))
+        }
+        guard let settings = try? activeExportSettings.validated() else { return "—" }
+        let audioBitRate = metadata.hasAudio
+            ? (metadata.audioBitRate > 0 ? min(320_000, max(64_000, metadata.audioBitRate)) : 128_000) : 0
+        return L10n.byteCount(settings.estimatedByteCount(duration: selectionDuration, audioBitRate: audioBitRate))
     }
 
     var smartCompressionRecommendation: SmartCompressionRecommendation? {
@@ -351,36 +327,41 @@ final class VideoEditorModel: ObservableObject {
     }
 
     var exportCompressionDetail: String {
-        if exportCompression == .smart, usesCompatibilityPipeline {
-            return L10n.text("compression.compatibility_detail")
+        switch exportMode {
+        case .original: return L10n.text("export.original_detail")
+        case .custom: return L10n.text("export.custom_detail")
+        case .smart:
+            if usesCompatibilityPipeline { return L10n.text("compression.compatibility_detail") }
+            return smartCompressionRecommendation?.assessment.detail ?? L10n.text("compression.smart_detail")
         }
-        if exportCompression == .smart, let recommendation = smartCompressionRecommendation {
-            return recommendation.assessment.detail
-        }
-        return exportCompression.detail
     }
 
     var exportCompressionAnalysisText: String {
-        guard exportCompression == .smart,
+        guard exportMode == .smart,
               let recommendation = smartCompressionRecommendation else {
             return L10n.text("compression.size_notice")
         }
-
         let sourceRate = recommendation.sourceVideoBitRate > 0
-            ? recommendation.sourceVideoBitRateText
-            : L10n.text("common.unknown")
+            ? recommendation.sourceVideoBitRateText : L10n.text("common.unknown")
         if usesCompatibilityPipeline {
-            return L10n.format("compression.compatibility_analysis", "\(sourceRate)", "\(recommendation.targetVideoBitRateText)")
+            return L10n.format("compression.compatibility_analysis", sourceRate, recommendation.targetVideoBitRateText)
         }
-        return L10n.format("compression.analysis", "\(recommendation.assessment.title)", "\(sourceRate)", "\(recommendation.targetVideoBitRateText)")
+        return L10n.format("compression.analysis", recommendation.assessment.title, sourceRate, recommendation.targetVideoBitRateText)
+    }
+
+    var exportParametersText: String {
+        guard let metadata else { return "—" }
+        if exportMode == .smart {
+            return "MP4 · HEVC · \(metadata.resolutionText) · \(metadata.frameRateText)"
+        }
+        let settings = activeExportSettings
+        return "\(settings.format.shortTitle) · \(exportCodecTitle(settings.codec)) · \(settings.width) × \(settings.height) · \(settings.frameRate) fps"
     }
 
     var estimatedExportReductionText: String? {
-        guard exportCompression == .smart,
+        guard exportMode == .smart,
               let percentage = smartCompressionRecommendation?.reductionPercent else { return nil }
-        if percentage < 5 {
-            return L10n.text("compression.already_efficient")
-        }
+        if percentage < 5 { return L10n.text("compression.already_efficient") }
         return L10n.format("compression.estimated_reduction", "\(percentage)")
     }
 
@@ -452,6 +433,8 @@ final class VideoEditorModel: ObservableObject {
 
         mediaURL = url
         metadata = nil
+        customExportSettings = CustomExportSettings()
+        exportMode = .smart
         currentTime = 0
         selectionStart = 0
         selectionEnd = 0
@@ -622,6 +605,7 @@ final class VideoEditorModel: ObservableObject {
                         ? prepared.sourceInfo?.audioBitRate ?? audioBitRate
                         : audioBitRate
                 )
+                self.resetCustomExportSettings()
                 self.selectionEnd = max(0, durationSeconds - self.frameDuration)
                 self.player.replaceCurrentItem(with: AVPlayerItem(asset: asset))
                 self.isLoading = false
@@ -796,7 +780,7 @@ final class VideoEditorModel: ObservableObject {
     }
 
     func chooseExportDestination() {
-        guard canExport else { return }
+        guard canConfirmExport else { return }
         showExportReview = false
 
         let selectedFormat = exportFormat
@@ -804,7 +788,7 @@ final class VideoEditorModel: ObservableObject {
             guard let self else { return }
             let panel = NSSavePanel()
             panel.title = L10n.text("export.selected_clip")
-            panel.message = L10n.format("export.save_panel_message", "\(self.exportCompression.title)")
+            panel.message = L10n.format("export.save_panel_message", "\(self.exportMode.title)")
             panel.prompt = L10n.text("export.start")
             panel.canCreateDirectories = true
             panel.isExtensionHidden = false
@@ -1141,11 +1125,28 @@ final class VideoEditorModel: ObservableObject {
               let sourceURL = mediaURL,
               let processingURL = workingMediaURL else { return }
         do {
+            if let validationMessage = exportSettingsValidationMessage {
+                exportState = .failed(validationMessage)
+                return
+            }
+            guard outputURL.resolvingSymlinksInPath().standardizedFileURL
+                != sourceURL.resolvingSymlinksInPath().standardizedFileURL else {
+                throw ExportSettingsError.sourceDestination
+            }
+            if exportMode != .smart, let metadata {
+                let settings = try activeExportSettings.validated()
+                let arguments = ConfiguredFFmpegExport.arguments(
+                    settings: settings, metadata: metadata, sourceURL: sourceURL,
+                    outputURL: outputURL, start: selectionStart, duration: selectionDuration
+                )
+                try startFFmpegExport(arguments: arguments, outputURL: outputURL)
+                return
+            }
             if FileManager.default.fileExists(atPath: outputURL.path) {
                 try FileManager.default.removeItem(at: outputURL)
             }
 
-            if exportCompression == .smart, usesCompatibilityPipeline {
+            if usesCompatibilityPipeline {
                 try startContentAdaptiveFFmpegExport(
                     sourceURL: sourceURL,
                     outputURL: outputURL
@@ -1156,7 +1157,7 @@ final class VideoEditorModel: ObservableObject {
             let asset = AVURLAsset(url: processingURL)
             guard let session = AVAssetExportSession(
                 asset: asset,
-                presetName: exportCompression.avPresetName
+                presetName: AVAssetExportPresetHEVCHighestQuality
             ) else {
                 throw MediaProcessingError.cannotCreateExportSession
             }
@@ -1174,7 +1175,7 @@ final class VideoEditorModel: ObservableObject {
             session.outputFileType = exportFormat.avFileType
             session.timeRange = CMTimeRange(start: start, end: end)
             session.shouldOptimizeForNetworkUse = true
-            if exportCompression == .smart, let metadata {
+            if let metadata {
                 let recommendation = SmartCompressionAdvisor.recommendation(for: metadata)
                 session.fileLengthLimit = max(
                     256_000,
@@ -1222,7 +1223,7 @@ final class VideoEditorModel: ObservableObject {
             audioKilobitsPerSecond = 128
         }
 
-        let process = try FFmpegTool.makeProcess(arguments: [
+        let arguments = [
             "-nostdin",
             "-y",
             "-hide_banner",
@@ -1250,7 +1251,14 @@ final class VideoEditorModel: ObservableObject {
             "-stats_period", "0.5",
             "-nostats",
             outputURL.path
-        ])
+        ]
+        try startFFmpegExport(arguments: arguments, outputURL: outputURL)
+    }
+
+    private func startFFmpegExport(arguments: [String], outputURL: URL) throws {
+        let duration = selectionDuration
+        guard duration > 0 else { throw MediaProcessingError.invalidSelection }
+        let process = try FFmpegTool.makeProcess(arguments: arguments)
         let progressPipe = Pipe()
         let errorPipe = Pipe()
         let progressParser = FFmpegProgressParser(duration: duration) { [weak self] progress in
@@ -1281,7 +1289,7 @@ final class VideoEditorModel: ObservableObject {
         process.standardError = errorPipe
         process.terminationHandler = { [weak self] completedProcess in
             Task { @MainActor [weak self] in
-                self?.finishContentAdaptiveFFmpegExport(
+                self?.finishFFmpegExport(
                     process: completedProcess,
                     outputURL: outputURL,
                     progressParser: progressParser
@@ -1305,7 +1313,7 @@ final class VideoEditorModel: ObservableObject {
         }
     }
 
-    private func finishContentAdaptiveFFmpegExport(
+    private func finishFFmpegExport(
         process: Process,
         outputURL: URL,
         progressParser: FFmpegProgressParser
