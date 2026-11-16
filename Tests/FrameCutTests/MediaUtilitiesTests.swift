@@ -233,28 +233,12 @@ final class MediaUtilitiesTests: XCTestCase {
         XCTAssertEqual(model.selectionFrameCount, 61)
         XCTAssertEqual(model.selectionDuration, 61.0 / 30.0, accuracy: 0.000_1)
 
-        var byteCounts: [ExportCompression: Int64] = [:]
-        let qaAsset = AVURLAsset(url: URL(fileURLWithPath: path))
-        for compression in ExportCompression.allCases {
-            let compatibilitySession = AVAssetExportSession(
-                asset: qaAsset,
-                presetName: compression.avPresetName
-            )
-            XCTAssertNotNil(compatibilitySession, compression.title)
-            XCTAssertTrue(
-                compatibilitySession?.supportedFileTypes.contains(.mp4) == true,
-                "\(compression.title) should support MP4"
-            )
-            XCTAssertTrue(
-                compatibilitySession?.supportedFileTypes.contains(.mov) == true,
-                "\(compression.title) should support MOV"
-            )
-
+        for mode in ExportMode.allCases {
             let outputURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("FrameCut-QA-\(compression.rawValue)-\(UUID().uuidString)")
+                .appendingPathComponent("FrameCut-QA-\(mode.rawValue)-\(UUID().uuidString)")
                 .appendingPathExtension("mp4")
             outputURLs.append(outputURL)
-            model.exportCompression = compression
+            model.exportMode = mode
             model.exportSelection(to: outputURL)
             try await waitUntil(timeout: 20) {
                 switch model.exportState {
@@ -264,16 +248,16 @@ final class MediaUtilitiesTests: XCTestCase {
             }
 
             guard case .completed = model.exportState else {
-                return XCTFail("\(compression.title) export state: \(model.exportState)")
+                return XCTFail("\(mode.title) export state: \(model.exportState)")
             }
             XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
 
             let exportedIndex = try await FrameIndexBuilder.build(url: outputURL)
-            XCTAssertEqual(exportedIndex.frameTimes.count, 61, compression.title)
+            XCTAssertEqual(exportedIndex.frameTimes.count, 61, mode.title)
             XCTAssertEqual(exportedIndex.frameTimes.first ?? -1, 0, accuracy: 0.000_1)
             XCTAssertEqual(exportedIndex.frameTimes.last ?? -1, 2.0, accuracy: 0.02)
 
-            if compression == .smart {
+            if mode == .smart {
                 let exportedAsset = AVURLAsset(url: outputURL)
                 guard let exportedVideoTrack = try await exportedAsset
                     .loadTracks(withMediaType: .video)
@@ -309,19 +293,7 @@ final class MediaUtilitiesTests: XCTestCase {
                 }
             }
 
-            byteCounts[compression] = try FileManager.default.attributesOfItem(
-                atPath: outputURL.path
-            )[.size] as? Int64
         }
-
-        XCTAssertGreaterThan(
-            byteCounts[.highQuality] ?? 0,
-            byteCounts[.balanced] ?? 0
-        )
-        XCTAssertGreaterThan(
-            byteCounts[.balanced] ?? 0,
-            byteCounts[.spaceSaving] ?? 0
-        )
     }
 
     @MainActor
@@ -387,8 +359,7 @@ final class MediaUtilitiesTests: XCTestCase {
             to: min(model.duration, start + requestedDuration),
             shouldSeek: false
         )
-        model.exportFormat = .mp4
-        model.exportCompression = .smart
+        model.exportMode = .smart
         model.exportSelection(to: outputURL)
         let exportTimeout = max(
             30,
@@ -452,7 +423,7 @@ final class MediaUtilitiesTests: XCTestCase {
     }
 
     @MainActor
-    func testAllExportProfilesAgainstOptionalCompatibilitySample() async throws {
+    func testAllExportModesAgainstOptionalCompatibilitySample() async throws {
         guard let path = ProcessInfo.processInfo.environment["FRAMECUT_COMPATIBILITY_QA_VIDEO"] else {
             throw XCTSkip(
                 "Set FRAMECUT_COMPATIBILITY_QA_VIDEO to test every export profile."
@@ -470,7 +441,6 @@ final class MediaUtilitiesTests: XCTestCase {
 
         model.updateInPoint(to: 0, shouldSeek: false)
         model.updateOutPoint(to: min(2, model.duration), shouldSeek: false)
-        model.exportFormat = .mp4
 
         var outputURLs: [URL] = []
         defer {
@@ -479,14 +449,14 @@ final class MediaUtilitiesTests: XCTestCase {
             }
         }
 
-        for compression in ExportCompression.allCases {
+        for mode in ExportMode.allCases {
             let outputURL = FileManager.default.temporaryDirectory
                 .appendingPathComponent(
-                    "FrameCut-Compatibility-QA-\(compression.rawValue)-\(UUID().uuidString)"
+                    "FrameCut-Compatibility-QA-\(mode.rawValue)-\(UUID().uuidString)"
                 )
                 .appendingPathExtension("mp4")
             outputURLs.append(outputURL)
-            model.exportCompression = compression
+            model.exportMode = mode
             model.exportSelection(to: outputURL)
             try await waitUntil(timeout: 60) {
                 switch model.exportState {
@@ -495,10 +465,10 @@ final class MediaUtilitiesTests: XCTestCase {
                 }
             }
             guard case .completed = model.exportState else {
-                return XCTFail("\(compression.title) 导出失败：\(model.exportState)")
+                return XCTFail("\(mode.title) 导出失败：\(model.exportState)")
             }
             let index = try await FrameIndexBuilder.build(url: outputURL)
-            XCTAssertFalse(index.frameTimes.isEmpty, compression.title)
+            XCTAssertFalse(index.frameTimes.isEmpty, mode.title)
         }
     }
 
@@ -644,25 +614,6 @@ final class MediaUtilitiesTests: XCTestCase {
             anchorTime,
             accuracy: 0.000_001
         )
-    }
-
-    func testCompressionEstimatesDecreaseByProfile() {
-        let metadata = MediaMetadata(
-            duration: 120,
-            width: 1_920,
-            height: 1_080,
-            frameRate: 30,
-            hasAudio: true
-        )
-
-        let high = ExportCompression.highQuality.estimatedByteCount(metadata: metadata, duration: 60)
-        let balanced = ExportCompression.balanced.estimatedByteCount(metadata: metadata, duration: 60)
-        let compact = ExportCompression.spaceSaving.estimatedByteCount(metadata: metadata, duration: 60)
-
-        XCTAssertGreaterThan(high, balanced)
-        XCTAssertGreaterThan(balanced, compact)
-        XCTAssertEqual(ExportCompression.balanced.avPresetName, AVAssetExportPreset640x480)
-        XCTAssertEqual(ExportCompression.smart.avPresetName, AVAssetExportPresetHEVCHighestQuality)
     }
 
     func testSmartCompressionUsesSourceBitrateAndQualityDensity() {

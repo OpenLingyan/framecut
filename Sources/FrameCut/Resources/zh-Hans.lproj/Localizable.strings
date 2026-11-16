@@ -78,7 +78,7 @@
 "export.review" = "检查并导出";
 "export.review_hint" = "检查并导出所选片段（⌘E）";
 "export.review_subtitle" = "确认范围后，再选择保存位置";
-"export.save_panel_message" = "源视频不会被修改 · {0}压缩";
+"export.save_panel_message" = "源视频不会被修改 · {0}";
 "export.segment" = "片段";
 "export.selected_clip" = "导出所选片段";
 "export.smart_recommended" = "智能模式推荐";
@@ -243,3 +243,23 @@
 "transport.play_selection" = "播放选区";
 "transport.previous_frame" = "上一帧";
 "transport.previous_keyframe" = "上一关键帧";
+
+"export.settings" = "导出设置";
+"export.mode_original" = "原始设置";
+"export.mode_smart" = "智能推荐";
+"export.mode_custom" = "自定义";
+"export.original_detail" = "沿用源视频的尺寸、编码、帧率和目标码率。";
+"export.custom_detail" = "使用设定的尺寸、编码、帧率和目标码率导出。";
+"export.custom_defaults" = "默认使用源视频的原始数据";
+"export.reset_original" = "恢复原始数据";
+"export.video_codec" = "视频编码";
+"export.width" = "宽度";
+"export.height" = "高度";
+"export.target_bitrate" = "目标视频码率";
+"export.source_bitrate" = "原始视频码率：{0}";
+"export.invalid_dimensions" = "宽度和高度须为 2–16384 像素之间的偶数。";
+"export.invalid_frame_rate" = "请输入 0.001–240 fps 之间的帧率。";
+"export.invalid_bitrate" = "请输入 0.000001–2000 Mbps 之间的码率。若原始码率不可读，请在自定义中输入。";
+"export.unsupported_source_codec" = "暂不支持按源编码导出。请在自定义中选择 H.264 或 HEVC，或使用智能推荐。";
+"export.invalid_container" = "请选择与视频编码兼容的封装格式。";
+"export.source_destination" = "请选择新的输出文件，不能覆盖源视频。";

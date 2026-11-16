@@ -986,17 +986,14 @@ private struct ExportReviewSheet: View {
     @ObservedObject var model: VideoEditorModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(FrameCutColors.accent.opacity(0.16))
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(FrameCutColors.accentBright)
-                }
-                .frame(width: 46, height: 46)
-
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(FrameCutColors.accentBright)
+                    .frame(width: 46, height: 46)
+                    .background(FrameCutColors.accent.opacity(0.16))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(L10n.text("export.selected_clip"))
                         .font(.system(size: 19, weight: .semibold))
@@ -1007,88 +1004,36 @@ private struct ExportReviewSheet: View {
                 }
             }
 
-            VStack(spacing: 0) {
-                ReviewRow(label: L10n.text("export.source_video"), value: model.fileDisplayPath, monospaced: false)
-                Divider().overlay(FrameCutColors.border)
-                ReviewRow(label: L10n.text("selection.in"), value: L10n.format("selection.time_and_frame", "\(model.selectionStartTimecode)", "\(L10n.number(model.selectionStartFrameNumber))"))
-                Divider().overlay(FrameCutColors.border)
-                ReviewRow(label: L10n.text("selection.out"), value: L10n.format("selection.time_and_frame", "\(model.selectionEndTimecode)", "\(L10n.number(model.selectionEndFrameNumber))"))
-                Divider().overlay(FrameCutColors.border)
-                ReviewRow(label: L10n.text("export.segment"), value: L10n.format("selection.duration_and_frames", "\(model.selectionDurationClock)", "\(L10n.number(model.selectionFrameCount))"))
-            }
-            .padding(.horizontal, 13)
-            .panelSurface(radius: 9, color: FrameCutColors.elevated)
-
-            VStack(alignment: .leading, spacing: 9) {
-                Text(L10n.text("export.format"))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(FrameCutColors.secondaryText)
-                Picker(L10n.text("export.format"), selection: $model.exportFormat) {
-                    ForEach(ExportFormat.allCases) { format in
-                        Text(format.title).tag(format)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-            }
-
-            VStack(alignment: .leading, spacing: 9) {
-                HStack {
-                    Text(L10n.text("export.compression"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(FrameCutColors.secondaryText)
-                    Spacer()
-                    Text(L10n.text("export.smart_recommended"))
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrameCutColors.tertiaryText)
-                }
-
-                Picker(L10n.text("export.compression"), selection: $model.exportCompression) {
-                    ForEach(ExportCompression.allCases) { compression in
-                        Text(compression.title).tag(compression)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-
-                HStack(spacing: 10) {
-                    Image(systemName: model.exportCompression.systemImage)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrameCutColors.accentBright)
-                        .frame(width: 24, height: 24)
-                        .background(FrameCutColors.accent.opacity(0.13))
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(model.exportCompressionDetail)
-                            .font(.system(size: 10, weight: .medium))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    selectionReview
+                    VStack(alignment: .leading, spacing: 9) {
+                        Text(L10n.text("export.settings"))
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(FrameCutColors.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(model.exportCompressionAnalysisText)
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrameCutColors.tertiaryText)
-                            .fixedSize(horizontal: false, vertical: true)
+                        Picker(L10n.text("export.settings"), selection: $model.exportMode) {
+                            ForEach(ExportMode.allCases) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("export-mode")
                     }
 
-                    Spacer(minLength: 12)
+                    if model.exportMode == .custom {
+                        CustomExportFields(model: model)
+                    }
+                    exportSummary
 
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(L10n.text("export.estimated_size"))
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrameCutColors.tertiaryText)
-                        Text(model.estimatedExportSizeText)
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                            .monospacedDigit()
-                            .foregroundStyle(FrameCutColors.primaryText)
-                        if let reductionText = model.estimatedExportReductionText {
-                            Text(reductionText)
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(FrameCutColors.success)
-                        }
+                    if let message = model.exportSettingsValidationMessage {
+                        Label(message, systemImage: "exclamationmark.triangle")
+                            .font(.system(size: 11))
+                            .foregroundStyle(FrameCutColors.warning)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(10)
-                .panelSurface(radius: 7, color: FrameCutColors.elevated)
+                .padding(.trailing, 2)
             }
 
             HStack(spacing: 8) {
@@ -1097,29 +1042,163 @@ private struct ExportReviewSheet: View {
                 Text(L10n.text("export.source_unchanged"))
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(FrameCutColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(11)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(FrameCutColors.success.opacity(0.075))
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
 
             HStack {
                 Spacer()
-                Button(L10n.text("common.cancel")) {
-                    model.showExportReview = false
-                }
-                .buttonStyle(ToolbarActionButtonStyle())
-
+                Button(L10n.text("common.cancel")) { model.showExportReview = false }
+                    .buttonStyle(ToolbarActionButtonStyle())
+                    .keyboardShortcut(.cancelAction)
                 Button {
                     model.chooseExportDestination()
                 } label: {
                     Label(L10n.text("export.choose_location"), systemImage: "arrow.right")
                 }
                 .buttonStyle(ToolbarActionButtonStyle(isPrimary: true))
+                .disabled(!model.canConfirmExport)
             }
         }
         .padding(24)
-        .frame(width: 520)
+        .frame(width: 580, height: min(
+            model.exportMode == .custom ? 740 : 570,
+            (NSScreen.main?.visibleFrame.height ?? 900) - 80
+        ))
         .background(FrameCutColors.panel)
+    }
+
+    private var selectionReview: some View {
+        VStack(spacing: 0) {
+            ReviewRow(label: L10n.text("export.source_video"), value: model.fileDisplayPath, monospaced: false)
+            Divider().overlay(FrameCutColors.border)
+            ReviewRow(label: L10n.text("selection.in"), value: L10n.format("selection.time_and_frame", model.selectionStartTimecode, L10n.number(model.selectionStartFrameNumber)))
+            Divider().overlay(FrameCutColors.border)
+            ReviewRow(label: L10n.text("selection.out"), value: L10n.format("selection.time_and_frame", model.selectionEndTimecode, L10n.number(model.selectionEndFrameNumber)))
+            Divider().overlay(FrameCutColors.border)
+            ReviewRow(label: L10n.text("export.segment"), value: L10n.format("selection.duration_and_frames", model.selectionDurationClock, L10n.number(model.selectionFrameCount)))
+        }
+        .padding(.horizontal, 13)
+        .panelSurface(radius: 9, color: FrameCutColors.elevated)
+    }
+
+    private var exportSummary: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(model.exportParametersText)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(FrameCutColors.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: model.exportMode.systemImage)
+                    .foregroundStyle(FrameCutColors.accentBright)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.exportCompressionDetail)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(FrameCutColors.secondaryText)
+                    if model.exportMode == .original, let metadata = model.metadata {
+                        Text(L10n.format("export.source_bitrate", metadata.videoBitRateText))
+                            .font(.system(size: 10))
+                            .foregroundStyle(FrameCutColors.secondaryText)
+                    }
+                    Text(model.exportCompressionAnalysisText)
+                        .font(.system(size: 10))
+                        .foregroundStyle(FrameCutColors.tertiaryText)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(L10n.text("export.estimated_size"))
+                        .font(.system(size: 10))
+                        .foregroundStyle(FrameCutColors.tertiaryText)
+                    Text(model.estimatedExportSizeText)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(FrameCutColors.primaryText)
+                    if let reduction = model.estimatedExportReductionText {
+                        Text(reduction)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(FrameCutColors.success)
+                    }
+                }
+                .fixedSize()
+            }
+        }
+        .padding(12)
+        .panelSurface(radius: 7, color: FrameCutColors.elevated)
+    }
+}
+
+private struct CustomExportFields: View {
+    @ObservedObject var model: VideoEditorModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(L10n.text("export.custom_defaults"))
+                    .font(.system(size: 10))
+                    .foregroundStyle(FrameCutColors.tertiaryText)
+                Spacer()
+                Button(L10n.text("export.reset_original")) { model.resetCustomExportSettings() }
+                    .buttonStyle(.link)
+                    .font(.system(size: 11))
+            }
+            HStack(alignment: .top, spacing: 16) {
+                field(L10n.text("export.format")) {
+                    Picker(L10n.text("export.format"), selection: $model.customExportSettings.format) {
+                        ForEach(model.customExportSettings.codec.supportedFormats) { format in
+                            Text(format.title).tag(format)
+                        }
+                    }
+                    .labelsHidden()
+                }
+                field(L10n.text("export.video_codec")) {
+                    Picker(L10n.text("export.video_codec"), selection: $model.customExportSettings.codec) {
+                        ForEach(model.availableExportCodecs) { codec in
+                            Text(model.exportCodecTitle(codec)).tag(codec)
+                        }
+                    }
+                    .labelsHidden()
+                    .onChange(of: model.customExportSettings.codec) { _, _ in
+                        model.normalizeCustomExportFormat()
+                    }
+                }
+            }
+            HStack(alignment: .top, spacing: 16) {
+                numericField(L10n.text("export.width"), text: $model.customExportSettings.width, unit: "px")
+                numericField(L10n.text("export.height"), text: $model.customExportSettings.height, unit: "px")
+            }
+            HStack(alignment: .top, spacing: 16) {
+                numericField(L10n.text("media.frame_rate"), text: $model.customExportSettings.frameRate, unit: "fps")
+                numericField(L10n.text("export.target_bitrate"), text: $model.customExportSettings.bitRateMbps, unit: "Mbps")
+            }
+        }
+    }
+
+    private func field<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(FrameCutColors.secondaryText)
+            content()
+                .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func numericField(_ title: String, text: Binding<String>, unit: String) -> some View {
+        field(title) {
+            HStack(spacing: 6) {
+                TextField(title, text: text)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, design: .monospaced))
+                    .accessibilityLabel(title)
+                Text(unit)
+                    .font(.system(size: 10))
+                    .foregroundStyle(FrameCutColors.tertiaryText)
+            }
+        }
     }
 }
 

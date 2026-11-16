@@ -6,7 +6,8 @@ FrameCut is a native macOS video trimming app. It opens local videos through a f
 
 ## Features
 
-- Reads and exports media locally with AVFoundation; videos are never uploaded.
+- Reads and exports media locally with AVFoundation and FFmpeg; videos are never uploaded.
+- Offers Original Settings, Smart Recommendation, and Custom export modes. Smart Recommendation uses MP4 with HEVC. Custom starts with the source dimensions, codec, frame rate, and bitrate and supports editing each value, choosing MP4 or MOV, and resetting to the source settings.
 - Scans video sample timestamps to show the actual frame count and provide precise previous-frame and next-frame navigation.
 - Detects sync samples for previous-keyframe and next-keyframe navigation.
 - Provides a thumbnail timeline with a playhead, draggable In/Out handles, and a highlighted selection.
@@ -25,7 +26,7 @@ FrameCut is a native macOS video trimming app. It opens local videos through a f
 - macOS 14 Sonoma or later.
 - Official preview builds are intended to support both Apple Silicon and Intel Macs as Universal 2 applications.
 - Building from source requires Xcode 15 or later and Swift 5.10+.
-- Native formats require no additional dependencies. Compatibility previews for other containers and codecs, as well as content-adaptive compression, require FFmpeg. Install it locally with `brew install ffmpeg`.
+- Opening native formats and using native Smart Recommendation export require no additional dependencies. Original Settings, Custom export, compatibility previews, and content-adaptive compression require FFmpeg. Install it locally with `brew install ffmpeg`.
 
 FrameCut does not bundle Homebrew or FFmpeg binaries. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for component purposes, installation boundaries, and license information.
 
@@ -53,7 +54,7 @@ Preferences stay on this Mac in the app's standard macOS preferences file (`~/Li
 | Audio codecs | AAC, MP3, AC-3, E-AC-3, Opus, Vorbis, FLAC, ALAC, PCM, WMA, DTS |
 | Containers and elementary streams | MP4/M4V, MOV, AVI/DivX, MKV, WebM, WMV/ASF, MPG/MPEG/VOB, TS/M2TS/MTS/M4TS, MXF, FLV/F4V, 3GP/3G2, OGV, RM/RMVB, DV/MOD/TOD, and raw H.264/H.265/AV1 streams |
 
-The exact decoding range depends on the decoders enabled in the installed FFmpeg build. Standard exports use H.264/AAC for broad compatibility, while smart compression uses H.265/HEVC with AAC.
+The exact decoding range depends on the decoders enabled in the installed FFmpeg build. Smart Recommendation exports MP4 using H.265/HEVC with AAC. Original Settings retains the source video dimensions, supported codec, frame timing, and target bitrate; it re-encodes the selected range rather than copying compressed packets. Custom offers H.264 and HEVC plus the source codec when supported. Both modes encode audio as AAC. Supported source encoders include H.264, HEVC, MPEG-4 Part 2, ProRes, Motion JPEG, AV1, and VP9, subject to the installed FFmpeg build. Unsupported source codecs require choosing H.264 or HEVC in Custom, or using Smart Recommendation. MOV is used for ProRes and Motion JPEG; other source containers default to a compatible MP4 or MOV output. Bitrates and file sizes are targets and estimates, not guarantees.
 
 ## Build the macOS App
 
